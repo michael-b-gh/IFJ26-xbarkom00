@@ -1,6 +1,3 @@
-#ifndef _ERROR_IFJ26_H
-#define _ERROR_IFJ26_H
-
 /**
 * Project: IFJ26 Compiler
 *
@@ -8,6 +5,9 @@
 * @brief definitions of errors
 * @author Mykhailo Barkovskyi (xbarkom00)
 */
+
+#ifndef _ERROR_IFJ26_H
+#define _ERROR_IFJ26_H
 
 #define SUCCESS 0 // No errors
 #define LEX_ERR 1 // Lexical error
