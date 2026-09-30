@@ -30,27 +30,21 @@ int parse_start(token *current_token) {
   if (parse_prolog(current_token) == SYN_ERR)
     return SYN_ERR;
 
-  get_next_token(current_token);
-
   while (current_token->token_type != EOF) {
     if (current_token->token_type == TOKEN_VAR ||
         current_token->token_type == TOKEN_VAL) {
-      get_next_token(current_token);
       if (parse_variable(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_DEF) {
-      get_next_token(current_token);
       if (parse_function(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_IF) {
-      get_next_token(current_token);
       if (parse_if(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_WHILE) {
-      get_next_token(current_token);
       if (parse_while(current_token) == SYN_ERR)
         return SYN_ERR;
     } else
@@ -65,8 +59,10 @@ int parse_prolog(token *current_token) {
   if (current_token->token_type == TOKEN_PROLOG) {
       get_next_token(current_token);
       
-      if (current_token->token_type == TOKEN_EOL) 
+      if (current_token->token_type == TOKEN_EOL) {
+          get_next_token(current_token);
           return SUCCESS;
+      }
   }
 
   return SYN_ERR;
@@ -74,6 +70,8 @@ int parse_prolog(token *current_token) {
 
 // Verifies grammatical correctness of the variable definition
 int parse_variable(token *current_token) {
+  get_next_token(current_token);
+
   if (current_token->token_type == TOKEN_ID) {
     get_next_token(current_token);
 
@@ -88,6 +86,7 @@ int parse_variable(token *current_token) {
       get_next_token(current_token);
 
       if (current_token->token_type == TOKEN_EOL) {
+        get_next_token(current_token);
         return SUCCESS;
       }
     } else
@@ -99,6 +98,8 @@ int parse_variable(token *current_token) {
 
 // Verifies grammatical correctness of the function definition
 int parse_function(token *current_token) {
+  get_next_token(current_token);
+
   if (current_token->token_type == TOKEN_ID) {
     get_next_token(current_token);
 
@@ -125,6 +126,7 @@ int parse_function(token *current_token) {
           get_next_token(current_token);
 
           if (current_token->token_type == TOKEN_DED) {
+            get_next_token(current_token);
             return SUCCESS;
           }
         }
@@ -138,6 +140,7 @@ int parse_function(token *current_token) {
 
 // Verifies grammatical correctness of an if-statement
 int parse_if(token *current_token) {
+  get_next_token(current_token);
   // TODO: Check for condition
 
   if (current_token->token_type == TOKEN_THEN) {
@@ -165,6 +168,7 @@ int parse_if(token *current_token) {
 
                 if (current_token->token_type == TOKEN_DED) {
                   get_next_token(current_token);
+                  return SUCCESS;
                 }
               }
             }
@@ -181,6 +185,8 @@ int parse_if(token *current_token) {
 
 // Verifies grammatical correctness of a while-loop
 int parse_while(token *current_token) {
+  get_next_token(current_token);
+
   if (current_token->token_type == TOKEN_DO) {
     // TODO: Check for condition
     get_next_token(current_token);
@@ -194,6 +200,7 @@ int parse_while(token *current_token) {
         get_next_token(current_token);
 
         if (current_token->token_type == TOKEN_DED) {
+          get_next_token(current_token);
           return SUCCESS;
         } else
           return SYN_ERR;
@@ -209,7 +216,7 @@ int parse_while(token *current_token) {
 int parse_type(token *current_token) {
   if (current_token->token_type == TOKEN_INT ||
       current_token->token_type == TOKEN_DOUBLE ||
-      current_token->token_type == STRING ||
+      current_token->token_type == TOKEN_STRING ||
       current_token->token_type == TOKEN_UNIT) {
 
     get_next_token(current_token);
@@ -222,8 +229,10 @@ int parse_type(token *current_token) {
 
 // Verifies function parameter definitions
 int parse_param(token *current_token) {
-  if (current_token->token_type == TOKEN_R_PARENTHESIS)
+  if (current_token->token_type == TOKEN_R_PARENTHESIS) {
+    get_next_token(current_token);
     return SUCCESS;
+  }
 
   while (current_token->token_type != TOKEN_R_PARENTHESIS) {
     if (current_token->token_type == TOKEN_ID)
@@ -246,6 +255,7 @@ int parse_param(token *current_token) {
     } else
       return SYN_ERR;
   }
+  get_next_token(current_token);
   return SUCCESS;
 }
 
@@ -256,38 +266,33 @@ int parse_block(token *current_token) {
   while (current_token->token_type != TOKEN_DED) {
     if (current_token->token_type == TOKEN_VAR ||
         current_token->token_type == TOKEN_VAL) {
-      get_next_token(current_token);
       if (parse_variable(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_DEF) {
-      get_next_token(current_token);
       if (parse_function(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_IF) {
-      get_next_token(current_token);
       if (parse_if(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_WHILE) {
-      get_next_token(current_token);
       if (parse_while(current_token) == SYN_ERR)
         return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_RETURN) {
-       get_next_token(current_token);
        // TODO: implement parse_return();
        // if (parse_return(current_token) == SYN_ERR)
        //    return SYN_ERR;
 
     } else if (current_token->token_type == TOKEN_ID) {
-       get_next_token(current_token);
        // TODO: differentiate between variable reassignment and function call
     } else
       return SYN_ERR;
   }
 
+  get_next_token(current_token);
   return SUCCESS;
 }
 
