@@ -22,7 +22,7 @@ typedef enum {
   STATE_MUL_STR,
   STATE_STRING_DONE,
   STATE_INT_DONE,
-  STATE_SOMMENT_DONE,
+  STATE_COMMENT_DONE,
   STATE_ID_DONE,
   STATE_DOUBLE_DONE,
   STATE_MUL_STR_DONE,
@@ -59,18 +59,74 @@ typedef enum {
   STATE_PROLOG
 } states;
 
-typedef struct {
-} ret_symbol;
-
+/**
+ * @brief Takes symbol from stdin and gives it to the lexer
+ *
+ * @return Returns symbol from stdin to lexer
+ */
 int NextSymbol() {
   int symbol;
-  int row = 0;
   symbol = getchar();
-  if (symbol == '\n') {
-    row++;
-  }
   return symbol;
-  return row;
 }
 
-int main() {}
+int main() {
+  char* word = malloc(10 * sizeof(char));
+  int lenght = 0;
+  int lenght_array = 10;
+  int symbol = NextSymbol;
+  states state = STATE_START;
+  token Token;
+
+  while (1) {
+    if (lenght > lenght_array) {
+      char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+      if (check == NULL) {
+        printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+        free(word);
+        return 1;
+      }
+      word = check;
+      lenght_array = lenght_array * 2;
+    }
+  }
+  case(state){
+    if (isalpha(symbol)){
+      state=STATE_ID;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(isdigit(symbol)){
+      state=STATE_INT;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(symbol=='\"'){
+      state=STATE_STRING;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(symbol=='+'){ //leaving more states so start state dont return values imidiatelly
+      state=STATE_PLUS;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(symbol=='-'){
+      state=STATE_MINUS;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(symbol=='*'){
+      state=STATE_MUL;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+    }else if(symbol=='/'){
+      state=STATE_DIV;
+      word[lenght_array]=symbol;
+      lenght++;
+      symbol=NextSymbol;
+  }//add more state transitions for <,>,and such
+  
+}
+}
