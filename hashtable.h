@@ -12,17 +12,17 @@
 typedef struct HashTable HashTable;
 
 typedef enum {
-    HASHTABLE_ITEM_INSERTED,
-    HASHTABLE_ITEM_EXISTS,
-    HASHTABLE_ITEM_ALLOC_FAILED
-  } HashTableInsertResult;
+  HASHTABLE_ITEM_INSERTED,
+  HASHTABLE_ITEM_EXISTS,
+  HASHTABLE_ITEM_ALLOC_FAILED
+} HashTableInsertResult;
 
 /**
  * @brief Allocates empty hashtable.
  *
  * @return Pointer to the new table, or NULL if allocation fails.
  */
-HashTable *hashTableInit(void);
+HashTable *hashTableCreate(void);
 
 /**
  * @brief Inserts a new item into the hashtable.
