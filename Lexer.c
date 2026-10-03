@@ -48,6 +48,7 @@ typedef enum {
   STATE_MORE_THAN_EQ,
   STATE_EQ,
   STATE_NOT_EQ,
+  STATE_NOT,
   STATE_ASSIGN,
   STATE_IND,
   STATE_DED,
@@ -138,7 +139,27 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
-        }  // TODO:add more state transitions for <,>,and such
+        } else if (symbol == '!') {
+          state = STATE_NOT;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '=') {
+          state = STATE_EQ;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '(') {
+          state = STATE_L_PARENTHESIS;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == ')') {
+          state = STATE_R_PARENTHESIS;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        }  // TODO:add more state transitions
         break;
 
       case STATE_PLUS:
@@ -200,6 +221,40 @@ int get_next_token(token* current_token) {
       case STATE_MORE_THAN_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MORE_THAN_EQ;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_NOT:
+        if (symbol == '=') {
+          state = STATE_NOT_EQ;
+          word[lenght] = symbol;
+          lenght++;
+          break;
+        } else if (symbol != ' ') {
+          free(word);
+          return 1;
+        }
+      case STATE_NOT_EQ:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_NOT_EQ;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_EQ:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_EQ;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_L_PARENTHESIS:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_L_PARENTHESIS;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_R_PARENTHESIS:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_R_PARENTHESIS;
         current_token->attribute = word;
         lenght = 0;
         return 0;
