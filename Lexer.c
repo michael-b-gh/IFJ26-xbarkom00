@@ -128,7 +128,17 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
-        }  // add more state transitions for <,>,and such
+        } else if (symbol == '<') {
+          state = STATE_LESS_THAN;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '>') {
+          state = STATE_MORE_THAN;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        }  // TODO:add more state transitions for <,>,and such
         break;
 
       case STATE_PLUS:
@@ -140,6 +150,56 @@ int get_next_token(token* current_token) {
       case STATE_MINUS:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MINUS;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_MUL:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_MUL;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_DIV:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_DIV;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_LESS_THAN:
+        if (symbol == '=') {
+          state = STATE_LESS_THAN_EQ;
+          word[lenght] = symbol;
+          lenght++;
+          break;
+        } else {
+          word[lenght] = '\0';
+          current_token->token_type = TOKEN_LESS_THAN;
+          current_token->attribute = word;
+          lenght = 0;
+          return 0;
+        }
+      case STATE_LESS_THAN_EQ:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_LESS_THAN_EQ;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_MORE_THAN:
+        if (symbol == '=') {
+          state = STATE_MORE_THAN_EQ;
+          word[lenght] = symbol;
+          lenght++;
+          break;
+        } else {
+          word[lenght] = '\0';
+          current_token->token_type = TOKEN_MORE_THAN;
+          current_token->attribute = word;
+          lenght = 0;
+          return 0;
+        }
+      case STATE_MORE_THAN_EQ:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_MORE_THAN_EQ;
         current_token->attribute = word;
         lenght = 0;
         return 0;
