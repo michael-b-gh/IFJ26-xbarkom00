@@ -56,4 +56,6 @@ typedef struct {
   char* attribute;
 } token;
 
+int get_next_token(token* current_token) {};
+
 #endif
