@@ -9,8 +9,9 @@
 
 #include <ctype.h>
 #include <stdio.h>
-#include <stdlin.h>
-#include scanner.h
+#include <stdlib.h>
+
+#include "scanner.h"
 
 typedef enum {
   STATE_START,
@@ -70,16 +71,16 @@ int NextSymbol() {
   return symbol;
 }
 
-int main() {
+int get_next_token(token* current_token) {
   char* word = malloc(10 * sizeof(char));
   int lenght = 0;
   int lenght_array = 10;
-  int symbol = NextSymbol;
+  int symbol = NextSymbol();
   states state = STATE_START;
   token Token;
 
   while (1) {
-    if (lenght > lenght_array) {
+    if (lenght >= lenght_array) {
       char* check = realloc(word, (lenght_array * 2) * sizeof(char));
       if (check == NULL) {
         printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -89,44 +90,60 @@ int main() {
       word = check;
       lenght_array = lenght_array * 2;
     }
+    switch (state) {
+      case STATE_START:
+        if (isalpha(symbol)) {
+          state = STATE_ID;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (isdigit(symbol)) {
+          state = STATE_INT;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '\"') {
+          state = STATE_STRING;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '+') {  // leaving more states so start state dont
+                                     // return values imidiatelly
+          state = STATE_PLUS;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '-') {
+          state = STATE_MINUS;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '*') {
+          state = STATE_MUL;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '/') {
+          state = STATE_DIV;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        }  // add more state transitions for <,>,and such
+        break;
+
+      case STATE_PLUS:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_PLUS;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_MINUS:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_MINUS;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+    }
   }
-  case(state){
-    if (isalpha(symbol)){
-      state=STATE_ID;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(isdigit(symbol)){
-      state=STATE_INT;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(symbol=='\"'){
-      state=STATE_STRING;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(symbol=='+'){ //leaving more states so start state dont return values imidiatelly
-      state=STATE_PLUS;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(symbol=='-'){
-      state=STATE_MINUS;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(symbol=='*'){
-      state=STATE_MUL;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-    }else if(symbol=='/'){
-      state=STATE_DIV;
-      word[lenght_array]=symbol;
-      lenght++;
-      symbol=NextSymbol;
-  }//add more state transitions for <,>,and such
-  
-}
+  return 0;
 }
