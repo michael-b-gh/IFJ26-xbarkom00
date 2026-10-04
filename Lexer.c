@@ -145,7 +145,7 @@ int get_next_token(token* current_token) {
           lenght++;
           symbol = NextSymbol();
         } else if (symbol == '=') {
-          state = STATE_EQ;
+          state = STATE_ASSIGN;
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
@@ -250,6 +250,21 @@ int get_next_token(token* current_token) {
         current_token->attribute = word;
         lenght = 0;
         return 0;
+      case STATE_ASSIGN:
+        if (symbol == '=') {
+          state = STATE_EQ;
+          word[lenght] = symbol;
+          lenght++;
+          break;
+        } else if (symbol = ' ') {
+          word[lenght] = '\0';
+          current_token->token_type = TOKEN_ASSIGN;
+          current_token->attribute = word;
+          lenght = 0;
+          return 0;
+        } else {
+          return 1;
+        }
       case STATE_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_EQ;
