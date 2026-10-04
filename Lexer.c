@@ -159,6 +159,16 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == ',') {
+          state = STATE_COMMA;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol;
+        } else if (symbol == ':') {
+          state = STATE_COLON;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol;
         }  // TODO:add more state transitions
         break;
 
@@ -255,6 +265,18 @@ int get_next_token(token* current_token) {
       case STATE_R_PARENTHESIS:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_R_PARENTHESIS;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_COMMA:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_COMMA;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_COLON:
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_COLON;
         current_token->attribute = word;
         lenght = 0;
         return 0;
