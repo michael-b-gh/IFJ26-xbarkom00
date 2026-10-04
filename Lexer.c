@@ -93,7 +93,7 @@ int get_next_token(token* current_token) {
     }
     switch (state) {
       case STATE_START:
-        if (isalpha(symbol)) {
+        if (isalpha(symbol) || symbol == '_') {
           state = STATE_ID;
           word[lenght] = symbol;
           lenght++;
@@ -163,13 +163,14 @@ int get_next_token(token* current_token) {
           state = STATE_COMMA;
           word[lenght] = symbol;
           lenght++;
-          symbol = NextSymbol;
+          symbol = NextSymbol();
         } else if (symbol == ':') {
           state = STATE_COLON;
           word[lenght] = symbol;
           lenght++;
-          symbol = NextSymbol;
+          symbol = NextSymbol();
         }  // TODO:add more state transitions
+           // TODO:make transition for STATE_DOUBLE if there is .
         break;
 
       case STATE_PLUS:
@@ -295,6 +296,55 @@ int get_next_token(token* current_token) {
         current_token->attribute = word;
         lenght = 0;
         return 0;
+      case STATE_ID:
+        while (isalpha(symbol) || isdigit(symbol) || symbol == '_') {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return 1;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          word[lenght] = symbol;
+          symbol = NextSymbol();
+          lenght++;
+        }
+        ungetc(symbol, stdin);
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_ID;
+        current_token->attribute = word;
+        lenght = 0;
+        return 0;
+      case STATE_INT:
+        while (isdigit(symbol) || symbol == '_') {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return 1;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (symbol == 'e' || symbol == '.') {
+            state = STATE_DOUBLE;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol = ' ') {
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_DOUBLE;
+            current_token->attribute = word;
+            lenght = 0;
+            return 0;
+          } else {
+            return 1;
+          }
+        }
     }
   }
   return 0;
