@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "error.h"
 #include "scanner.h"
 
 typedef enum {
@@ -86,7 +87,7 @@ int get_next_token(token* current_token) {
       if (check == NULL) {
         printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
         free(word);
-        return 1;
+        return LEX_ERR;
       }
       word = check;
       lenght_array = lenght_array * 2;
@@ -178,25 +179,25 @@ int get_next_token(token* current_token) {
         current_token->token_type = TOKEN_PLUS;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_MINUS:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MINUS;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_MUL:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MUL;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_DIV:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_DIV;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_LESS_THAN:
         if (symbol == '=') {
           state = STATE_LESS_THAN_EQ;
@@ -208,14 +209,14 @@ int get_next_token(token* current_token) {
           current_token->token_type = TOKEN_LESS_THAN;
           current_token->attribute = word;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         }
       case STATE_LESS_THAN_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_LESS_THAN_EQ;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_MORE_THAN:
         if (symbol == '=') {
           state = STATE_MORE_THAN_EQ;
@@ -227,14 +228,14 @@ int get_next_token(token* current_token) {
           current_token->token_type = TOKEN_MORE_THAN;
           current_token->attribute = word;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         }
       case STATE_MORE_THAN_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MORE_THAN_EQ;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_NOT:
         if (symbol == '=') {
           state = STATE_NOT_EQ;
@@ -243,14 +244,14 @@ int get_next_token(token* current_token) {
           break;
         } else if (symbol != ' ') {
           free(word);
-          return 1;
+          return LEX_ERR;
         }
       case STATE_NOT_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_NOT_EQ;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_ASSIGN:
         if (symbol == '=') {
           state = STATE_EQ;
@@ -262,40 +263,40 @@ int get_next_token(token* current_token) {
           current_token->token_type = TOKEN_ASSIGN;
           current_token->attribute = word;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         } else {
-          return 1;
+          return LEX_ERR;
         }
       case STATE_EQ:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_EQ;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_L_PARENTHESIS:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_L_PARENTHESIS;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_R_PARENTHESIS:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_R_PARENTHESIS;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_COMMA:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_COMMA;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_COLON:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_COLON;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_ID:
         while (isalpha(symbol) || isdigit(symbol) || symbol == '_') {
           if (lenght >= lenght_array - 1) {
@@ -303,7 +304,7 @@ int get_next_token(token* current_token) {
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
               free(word);
-              return 1;
+              return LEX_ERR;
             }
             word = check;
             lenght_array = lenght_array * 2;
@@ -317,7 +318,7 @@ int get_next_token(token* current_token) {
         current_token->token_type = TOKEN_ID;
         current_token->attribute = word;
         lenght = 0;
-        return 0;
+        return SUCCESS;
       case STATE_INT:
         while (isdigit(symbol) || symbol == '_') {
           if (lenght >= lenght_array - 1) {
@@ -325,7 +326,7 @@ int get_next_token(token* current_token) {
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
               free(word);
-              return 1;
+              return LEX_ERR;
             }
             word = check;
             lenght_array = lenght_array * 2;
@@ -340,12 +341,12 @@ int get_next_token(token* current_token) {
             current_token->token_type = TOKEN_DOUBLE;
             current_token->attribute = word;
             lenght = 0;
-            return 0;
+            return SUCCESS;
           } else {
-            return 1;
+            return LEX_ERR;
           }
         }
     }
   }
-  return 0;
+  return SUCCESS;
 }
