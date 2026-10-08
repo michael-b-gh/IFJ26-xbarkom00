@@ -87,7 +87,7 @@ int get_next_token(token* current_token) {
       if (check == NULL) {
         printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
         free(word);
-        return LEX_ERR;
+        return INT_ERR;
       }
       word = check;
       lenght_array = lenght_array * 2;
@@ -304,7 +304,7 @@ int get_next_token(token* current_token) {
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
               free(word);
-              return LEX_ERR;
+              return INT_ERR;
             }
             word = check;
             lenght_array = lenght_array * 2;
@@ -326,7 +326,7 @@ int get_next_token(token* current_token) {
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
               free(word);
-              return LEX_ERR;
+              return INT_ERR;
             }
             word = check;
             lenght_array = lenght_array * 2;
