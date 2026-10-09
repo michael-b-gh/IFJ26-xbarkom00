@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "error.h"
 #include "scanner.h"
@@ -312,12 +313,63 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
           lenght++;
         }
-        ungetc(symbol, stdin);
         word[lenght] = '\0';
-        current_token->token_type = TOKEN_ID;
-        current_token->attribute = word;
-        lenght = 0;
-        return SUCCESS;
+        if (strcmp(word, "def") == 0) {
+          current_token->token_type = TOKEN_DEF;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "if") == 0) {
+          current_token->token_type = TOKEN_IF;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "else") == 0) {
+          current_token->token_type = TOKEN_ELSE;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "do") == 0) {
+          current_token->token_type = TOKEN_DO;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "import") == 0) {
+          current_token->token_type = TOKEN_IMPORT;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "return") == 0) {
+          current_token->token_type = TOKEN_RETURN;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "then") == 0) {
+          current_token->token_type = TOKEN_THEN;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "val") == 0) {
+          current_token->token_type = TOKEN_VAL;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "var") == 0) {
+          current_token->token_type = TOKEN_VAR;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "while") == 0) {
+          current_token->token_type = TOKEN_WHILE;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else {
+          current_token->token_type = TOKEN_ID;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        }
       case STATE_INT:
         while (isdigit(symbol) || symbol == '_') {
           if (lenght >= lenght_array - 1) {
