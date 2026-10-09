@@ -79,7 +79,6 @@ int get_next_token(token* current_token) {
   int lenght_array = 10;
   int symbol = NextSymbol();
   states state = STATE_START;
-  token Token;
 
   while (1) {
     if (lenght >= lenght_array) {
@@ -331,21 +330,15 @@ int get_next_token(token* current_token) {
             word = check;
             lenght_array = lenght_array * 2;
           }
-          if (symbol == 'e' || symbol == '.') {
-            state = STATE_DOUBLE;
-            word[lenght] = symbol;
-            lenght++;
-            symbol = NextSymbol();
-          } else if (symbol = ' ') {
-            word[lenght] = '\0';
-            current_token->token_type = TOKEN_DOUBLE;
-            current_token->attribute = word;
-            lenght = 0;
-            return SUCCESS;
-          } else {
-            return LEX_ERR;
-          }
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
         }
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_INT;
+        current_token->attribute = word;
+        lenght = 0;
+        return SUCCESS;
     }
   }
   return SUCCESS;
