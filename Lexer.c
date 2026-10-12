@@ -15,6 +15,8 @@
 #include "error.h"
 #include "scanner.h"
 
+// TODO: implement DOUBLE from INT and STRING
+
 typedef enum {
   STATE_START,
   STATE_STRING,
@@ -60,7 +62,13 @@ typedef enum {
   STATE_R_PARENTHESIS,
   STATE_COMMA,
   STATE_COLON,
-  STATE_PROLOG
+  STATE_PROLOG,
+  STATE_EXP,
+  STATE_EXP_SIGN,
+  STATE_EXP_NUM,
+  STATE_EXP_NUM_NO_E,
+  STATE_INT_SIGN,
+  STATE_ZERO
 } states;
 
 /**
@@ -76,6 +84,7 @@ int NextSymbol() {
 
 int get_next_token(token* current_token) {
   char* word = malloc(10 * sizeof(char));
+  char last_symbol_word = ' ';
   int lenght = 0;
   int lenght_array = 10;
   int symbol = NextSymbol();
@@ -94,8 +103,18 @@ int get_next_token(token* current_token) {
     }
     switch (state) {
       case STATE_START:
-        if (isalpha(symbol) || symbol == '_') {
+        if (symbol == ' ' || symbol == '\n') {  // vygenerovane AI promptom:
+                                                // Zasekava sa mi STATE_COMMENT
+          symbol = NextSymbol();  // vygenerovane AI promptom: Zasekava sa mi
+                                  // STATE_COMMENT
+          break;  // vygenerovane AI promptom: Zasekava sa mi STATE_COMMENT
+        } else if (isalpha(symbol) || symbol == '_') {
           state = STATE_ID;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else if (symbol == '0') {
+          state = STATE_ZERO;
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
@@ -170,6 +189,11 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == '.') {
+          state = STATE_DOUBLE;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
         }  // TODO:add more state transitions
            // TODO:make transition for STATE_DOUBLE if there is .
         break;
@@ -181,11 +205,20 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_MINUS:
-        word[lenght] = '\0';
-        current_token->token_type = TOKEN_MINUS;
-        current_token->attribute = word;
-        lenght = 0;
-        return SUCCESS;
+        if (isdigit(symbol)) {
+          state = STATE_INT;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          break;
+        } else {
+          word[lenght] = '\0';
+          current_token->token_type = TOKEN_MINUS;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        }
+        break;
       case STATE_MUL:
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MUL;
@@ -193,6 +226,13 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_DIV:
+        if (symbol == '*') {
+          state = STATE_COMMENT;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          break;
+        }
         word[lenght] = '\0';
         current_token->token_type = TOKEN_DIV;
         current_token->attribute = word;
@@ -371,7 +411,7 @@ int get_next_token(token* current_token) {
           return SUCCESS;
         }
       case STATE_INT:
-        while (isdigit(symbol) || symbol == '_') {
+        while (1) {
           if (lenght >= lenght_array - 1) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
@@ -382,15 +422,321 @@ int get_next_token(token* current_token) {
             word = check;
             lenght_array = lenght_array * 2;
           }
-          word[lenght] = symbol;
-          lenght++;
-          symbol = NextSymbol();
+          if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == '_') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (!isdigit(symbol)) {
+              lenght = 0;
+              free(word);
+              return LEX_ERR;
+            }
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == '.') {
+            state = STATE_DOUBLE;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else if (symbol == 'e' || symbol == 'E') {
+            state = STATE_EXP;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else if (symbol == 'l' || symbol == 'L') {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          } else {
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_INT;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          }
         }
-        word[lenght] = '\0';
-        current_token->token_type = TOKEN_INT;
-        current_token->attribute = word;
-        lenght = 0;
-        return SUCCESS;
+        break;
+      case STATE_ZERO:
+        while (1) {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (isdigit(symbol) || symbol == '_' || symbol == 'l' ||
+              symbol == 'L') {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          } else if (symbol == 'e' || symbol == 'E') {
+            state = STATE_EXP;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else if (symbol == '.') {
+            state = STATE_DOUBLE;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else {
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_INT;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          }
+        }
+        break;
+      case STATE_COMMENT:
+        while (1) {
+          if (last_symbol_word == '*' || symbol == '/') {
+            state = STATE_START;
+            lenght = 0;
+            symbol = NextSymbol();
+            break;
+          } else {
+            last_symbol_word = symbol;
+            symbol = NextSymbol();
+          }
+        }
+        continue;
+      case STATE_DOUBLE:
+        while (1) {
+          if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            state = STATE_EXP_NUM_NO_E;
+            break;
+          } else if (symbol == 'e' || symbol == 'E') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            state = STATE_EXP;
+            break;
+          } else {
+            ungetc(symbol, stdin);
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          }
+        }
+        break;
+      case STATE_EXP:
+        while (1) {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (symbol == 'e' || symbol == 'E') {
+            lenght = 0;
+            ungetc(symbol, stdin);
+            free(word);
+            return LEX_ERR;
+          } else if (symbol == '+' || symbol == '-') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            state = STATE_EXP_SIGN;
+            break;
+          } else if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            state = STATE_EXP_NUM;
+            break;
+          } else {
+            ungetc(symbol, stdin);
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          }
+        }
+        break;
+      case STATE_EXP_SIGN:
+        while (1) {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (symbol == '+' || symbol == '-') {
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          } else if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            state = STATE_EXP_NUM;
+            break;
+          } else {
+            ungetc(symbol, stdin);
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          }
+        }
+        break;
+      case STATE_EXP_NUM:
+        while (1) {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf(
+                  "Pole nebolo mozne zvacsit, nie je mozne "
+                  "pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == '_') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (!isdigit(symbol)) {
+              lenght = 0;
+              free(word);
+              return LEX_ERR;
+            }
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == 'L' || symbol == 'l') {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          } else if (symbol == 'd' || symbol == 'D') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (isdigit(symbol) || symbol == '.' || symbol == '_' ||
+                symbol == 'e' || symbol == 'E' || isalpha(symbol)) {
+              free(word);
+              lenght = 0;
+              return LEX_ERR;
+            }
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_DOUBLE;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          } else if (symbol == 'f' || symbol == 'F') {
+            ungetc(symbol, stdin);
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          } else {
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_DOUBLE;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          }
+        }
+        break;
+      case STATE_EXP_NUM_NO_E:
+        while (1) {
+          if (lenght >= lenght_array - 1) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf(
+                  "Pole nebolo mozne zvacsit, nie je mozne "
+                  "pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (isdigit(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == '_') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (!isdigit(symbol)) {
+              lenght = 0;
+              free(word);
+              return LEX_ERR;
+            }
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          } else if (symbol == 'e' || symbol == 'E') {
+            state = STATE_EXP;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else if (symbol == 'd' || symbol == 'D') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (isdigit(symbol) || symbol == '.' || symbol == '_' ||
+                symbol == 'e' || symbol == 'E' || isalpha(symbol)) {
+              free(word);
+              lenght = 0;
+              return LEX_ERR;
+            }
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_DOUBLE;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          } else if (symbol == 'f' || symbol == 'F') {
+            ungetc(symbol, stdin);
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          } else {
+            ungetc(symbol, stdin);
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_DOUBLE;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          }
+        }
+        break;
     }
   }
   return SUCCESS;
