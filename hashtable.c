@@ -12,27 +12,50 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define HASHTABLE_INITIAL_SIZE 100
+#define HASHTABLE_INITIAL_SIZE 100 /**< Initial size of hashtable */
 
+/**
+ * @brief Hashes the key to index by using DJB2 (Dan Bernstein).
+ *
+ * @param key Name under which the item is stored.
+ * @param size size of the table, the result is in interval <0,size-1>
+ *
+ * @return Starting index for searching or inserting.
+ */
 static size_t hashingFunction(const char *key, size_t size);
+
+/**
+ * @brief Doubles the size of the hashtable and rehashes all items.
+ *
+ * @param table Table that will be resized.
+ *
+ * @return true If allocation was successful.
+ *         false If allocation was unsuccessful, old table is left unchanged.
+ */
 static bool resizingFunction(HashTable *table);
 
+/**
+ * @brief One item in hashtable.
+ */
 typedef struct {
-  char *key;
-  void *value;
-  bool used;
+  char *key;   /**< Copy of key */
+  void *value; /**< Value of the item */
+  bool used;   /**< True if item on index is used */
 } HashTableItem;
 
+/**
+ * @brief Hashtable with implicit chaining
+ */
 struct HashTable {
-  HashTableItem *items;
-  size_t size;
-  size_t count;
+  HashTableItem *items; /**< Array of items in hashtable */
+  size_t size;          /**< Number of items in array */
+  size_t count;         /**< Number of occupied items */
 };
 
 static size_t hashingFunction(const char *key, size_t size) {
   size_t value = 5381;
   for (size_t i = 0; key[i] != '\0'; i++) {
-    value = value * 33 + (int)key[i];
+    value = value * 33 + (unsigned char)key[i];
   }
   return value % size;
 }
@@ -128,4 +151,21 @@ void hashTableFree(HashTable *table) {
   }
   free(table->items);
   free(table);
+}
+
+size_t hashTableSize(const HashTable *table) {
+  if (table == NULL)
+    return 0;
+  return table->size;
+}
+
+void *hashTableIndexValue(const HashTable *table, size_t index) {
+  if (table == NULL)
+    return NULL;
+  if (index > table->size)
+    return NULL;
+  if (table->items[index].used) {
+    return table->items[index].value;
+  }
+  return NULL;
 }
