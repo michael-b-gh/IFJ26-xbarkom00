@@ -25,12 +25,6 @@ typedef enum {
   STATE_ID,
   STATE_DOUBLE,
   STATE_MUL_STR,
-  STATE_STRING_DONE,
-  STATE_INT_DONE,
-  STATE_COMMENT_DONE,
-  STATE_ID_DONE,
-  STATE_DOUBLE_DONE,
-  STATE_MUL_STR_DONE,
   STATE_DO,
   STATE_DEF,
   STATE_ELSE,
@@ -68,7 +62,10 @@ typedef enum {
   STATE_EXP_NUM,
   STATE_EXP_NUM_NO_E,
   STATE_INT_SIGN,
-  STATE_ZERO
+  STATE_ZERO,
+  STATE_TWO_QUOTE,
+  STATE_STRING_START,
+  STATE_STR_CONTROL
 } states;
 
 /**
@@ -124,7 +121,7 @@ int get_next_token(token* current_token) {
           lenght++;
           symbol = NextSymbol();
         } else if (symbol == '\"') {
-          state = STATE_STRING;
+          state = STATE_STRING_START;
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
@@ -195,10 +192,10 @@ int get_next_token(token* current_token) {
           lenght++;
           symbol = NextSymbol();
         }  // TODO:add more state transitions
-           // TODO:make transition for STATE_DOUBLE if there is .
         break;
 
       case STATE_PLUS:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_PLUS;
         current_token->attribute = word;
@@ -212,6 +209,7 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
           break;
         } else {
+          ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_MINUS;
           current_token->attribute = word;
@@ -220,6 +218,7 @@ int get_next_token(token* current_token) {
         }
         break;
       case STATE_MUL:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MUL;
         current_token->attribute = word;
@@ -233,6 +232,7 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
           break;
         }
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_DIV;
         current_token->attribute = word;
@@ -245,6 +245,7 @@ int get_next_token(token* current_token) {
           lenght++;
           break;
         } else {
+          ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_LESS_THAN;
           current_token->attribute = word;
@@ -252,6 +253,7 @@ int get_next_token(token* current_token) {
           return SUCCESS;
         }
       case STATE_LESS_THAN_EQ:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_LESS_THAN_EQ;
         current_token->attribute = word;
@@ -264,6 +266,7 @@ int get_next_token(token* current_token) {
           lenght++;
           break;
         } else {
+          ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_MORE_THAN;
           current_token->attribute = word;
@@ -308,30 +311,35 @@ int get_next_token(token* current_token) {
           return LEX_ERR;
         }
       case STATE_EQ:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_EQ;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
       case STATE_L_PARENTHESIS:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_L_PARENTHESIS;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
       case STATE_R_PARENTHESIS:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_R_PARENTHESIS;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
       case STATE_COMMA:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_COMMA;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
       case STATE_COLON:
+        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_COLON;
         current_token->attribute = word;
@@ -354,7 +362,11 @@ int get_next_token(token* current_token) {
           lenght++;
         }
         word[lenght] = '\0';
-        if (strcmp(word, "def") == 0) {
+        if (lenght == 1 && word[0] == '_') {
+          free(word);
+          lenght = 0;
+          return LEX_ERR;
+        } else if (strcmp(word, "def") == 0) {
           current_token->token_type = TOKEN_DEF;
           current_token->attribute = word;
           lenght = 0;
@@ -457,7 +469,7 @@ int get_next_token(token* current_token) {
           } else {
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_INT;
+            current_token->token_type = TOKEN_LIT_INT;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
@@ -651,7 +663,7 @@ int get_next_token(token* current_token) {
             }
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_DOUBLE;
+            current_token->token_type = TOKEN_LIT_DOUBLE;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
@@ -663,7 +675,7 @@ int get_next_token(token* current_token) {
           } else {
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_DOUBLE;
+            current_token->token_type = TOKEN_LIT_DOUBLE;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
@@ -718,7 +730,7 @@ int get_next_token(token* current_token) {
             }
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_DOUBLE;
+            current_token->token_type = TOKEN_LIT_DOUBLE;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
@@ -730,10 +742,170 @@ int get_next_token(token* current_token) {
           } else {
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_DOUBLE;
+            current_token->token_type = TOKEN_LIT_DOUBLE;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
+          }
+        }
+        break;
+      case STATE_STRING_START:
+        if (symbol == '\"') {
+          state = STATE_TWO_QUOTE;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        } else {
+          state = STATE_STRING;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+        }
+        break;
+      case STATE_STRING:
+        if (lenght >= lenght_array) {
+          char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+          if (check == NULL) {
+            printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+            free(word);
+            return INT_ERR;
+          }
+          word = check;
+          lenght_array = lenght_array * 2;
+        }
+        while (1) {
+          if (symbol == '\"') {
+            word[lenght] = symbol;
+            lenght++;
+            word[lenght] = '\0';
+            current_token->token_type = TOKEN_LIT_STRING;
+            current_token->attribute = word;
+            lenght = 0;
+            return SUCCESS;
+          } else if (symbol == '\n' || symbol == '\r') {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          } else if (symbol == '\\') {
+            symbol = NextSymbol();
+            if (symbol == 'n') {
+              word[lenght] = '\n';
+              lenght++;
+              symbol = NextSymbol();
+            } else if (symbol == 'r') {
+              word[lenght] = '\r';
+              lenght++;
+              symbol = NextSymbol();
+            } else if (symbol == 't') {
+              word[lenght] = '\t';
+              lenght++;
+              symbol = NextSymbol();
+            } else if (symbol == '\\') {
+              word[lenght] = '\\';
+              lenght++;
+              symbol = NextSymbol();
+            } else if (symbol == '\"') {
+              word[lenght] = '\"';
+              lenght++;
+              symbol = NextSymbol();
+            } else {
+              free(word);
+              lenght = 0;
+              return LEX_ERR;
+            }
+          } else {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          }
+        }
+        break;
+      case STATE_TWO_QUOTE:
+        if (lenght >= lenght_array) {
+          char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+          if (check == NULL) {
+            printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+            free(word);
+            return INT_ERR;
+          }
+          word = check;
+          lenght_array = lenght_array * 2;
+        }
+        if (symbol == '\"') {
+          state = STATE_MUL_STR;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          break;
+        } else {
+          word[lenght] = '\0';
+          lenght = 0;
+          current_token->token_type = TOKEN_LIT_STRING;
+          current_token->attribute = word;
+          return SUCCESS;
+        }
+      case STATE_MUL_STR:
+        while (1) {
+          if (lenght >= lenght_array) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (symbol == '\"') {
+            state = STATE_STR_CONTROL;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
+          } else {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          }
+        }
+        break;
+      case STATE_STR_CONTROL:
+        while (1) {
+          if (lenght >= lenght_array) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
+          if (symbol == '\"') {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            if (symbol == '\"') {
+              word[lenght] = symbol;
+              lenght++;
+              word[lenght] = '\0';
+              lenght = 0;
+              current_token->token_type = TOKEN_LIT_STRING;
+              current_token->attribute = word;
+              return SUCCESS;
+            } else {
+              state = STATE_MUL_STR;
+              word[lenght] = symbol;
+              lenght++;
+              symbol = NextSymbol();
+              break;
+            }
+          } else {
+            state = STATE_MUL_STR;
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+            break;
           }
         }
         break;
