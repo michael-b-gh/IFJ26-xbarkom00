@@ -416,6 +416,26 @@ int get_next_token(token* current_token) {
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
+        } else if (strcmp(word, "Double") == 0) {
+          current_token->token_type = TOKEN_DOUBLE;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "String") == 0) {
+          current_token->token_type = TOKEN_STRING;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "Int") == 0) {
+          current_token->token_type = TOKEN_INT;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        } else if (strcmp(word, "Unit") == 0) {
+          current_token->token_type = TOKEN_UNIT;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
         } else {
           current_token->token_type = TOKEN_ID;
           current_token->attribute = word;
