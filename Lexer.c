@@ -65,7 +65,8 @@ typedef enum {
   STATE_ZERO,
   STATE_TWO_QUOTE,
   STATE_STRING_START,
-  STATE_STR_CONTROL
+  STATE_STR_CONTROL,
+  STATE_MUL_COMMENT
 } states;
 
 /**
@@ -85,6 +86,8 @@ int get_next_token(token* current_token) {
   int lenght = 0;
   int lenght_array = 10;
   int symbol = NextSymbol();
+  int comm_counter = 0;
+  int comm_mul_line = 0;
   states state = STATE_START;
 
   while (1) {
@@ -171,6 +174,7 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+          break;
         } else if (symbol == ')') {
           state = STATE_R_PARENTHESIS;
           word[lenght] = symbol;
@@ -226,9 +230,13 @@ int get_next_token(token* current_token) {
         return SUCCESS;
       case STATE_DIV:
         if (symbol == '*') {
-          state = STATE_COMMENT;
+          state = STATE_MUL_COMMENT;
           word[lenght] = symbol;
           lenght++;
+          symbol = NextSymbol();
+          break;
+        } else if (symbol == '/') {
+          state = STATE_COMMENT;
           symbol = NextSymbol();
           break;
         }
@@ -253,7 +261,6 @@ int get_next_token(token* current_token) {
           return SUCCESS;
         }
       case STATE_LESS_THAN_EQ:
-        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_LESS_THAN_EQ;
         current_token->attribute = word;
@@ -301,29 +308,36 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           break;
-        } else if (symbol = ' ') {
+        } else {
+          ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_ASSIGN;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
-        } else {
-          return LEX_ERR;
         }
       case STATE_EQ:
-        ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_EQ;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
       case STATE_L_PARENTHESIS:
-        ungetc(symbol, stdin);
-        word[lenght] = '\0';
-        current_token->token_type = TOKEN_L_PARENTHESIS;
-        current_token->attribute = word;
-        lenght = 0;
-        return SUCCESS;
+        if (symbol == ')') {
+          state = STATE_UNIT;
+          word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          break;
+        } else {
+          ungetc(symbol, stdin);
+          word[lenght] = '\0';
+          current_token->token_type = TOKEN_L_PARENTHESIS;
+          current_token->attribute = word;
+          lenght = 0;
+          return SUCCESS;
+        }
+        break;
       case STATE_R_PARENTHESIS:
         ungetc(symbol, stdin);
         word[lenght] = '\0';
@@ -437,6 +451,7 @@ int get_next_token(token* current_token) {
           lenght = 0;
           return SUCCESS;
         } else {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_ID;
           current_token->attribute = word;
           lenght = 0;
@@ -536,18 +551,58 @@ int get_next_token(token* current_token) {
         }
         break;
       case STATE_COMMENT:
-        while (1) {
-          if (last_symbol_word == '*' || symbol == '/') {
-            state = STATE_START;
+        while (symbol != '\n' || symbol == EOF) {
+          symbol = NextSymbol();
+        }
+        state = STATE_START;
+        lenght = 0;
+        current_token->token_type = TOKEN_EOL;
+        current_token->attribute = NULL;
+        return SUCCESS;
+      case STATE_MUL_COMMENT:
+        comm_counter++;
+        while (comm_counter > 0) {
+          if (symbol == EOF) {
+            free(word);
             lenght = 0;
+            return LEX_ERR;
+          } else if (symbol == '\n') {
+            comm_mul_line = 1;
+          }
+          if (last_symbol_word == '*' && symbol == '/') {
+            comm_counter--;
             symbol = NextSymbol();
-            break;
+            continue;
+          } else if (last_symbol_word == '/' && symbol == '*') {
+            comm_counter++;
+            symbol = NextSymbol();
+            continue;
           } else {
             last_symbol_word = symbol;
             symbol = NextSymbol();
           }
         }
-        continue;
+        state = STATE_START;
+        if (comm_mul_line == 0) {
+          lenght = 0;
+          continue;
+        } else {
+          while (symbol != EOF &&
+                 symbol != '\n') {  // vygenerovane AI promptom: Zasekava sa mi
+                                    // blokovi komentar
+            if (symbol != ' ' && symbol != '\t' &&
+                symbol != '\r') {  // vygenerovane AI promptom: Zasekava sa mi
+                                   // blokovi komentar
+              free(word);
+              return LEX_ERR;
+            }
+            symbol = NextSymbol();
+          }
+          current_token->token_type = TOKEN_EOL;
+          current_token->attribute = NULL;
+          return SUCCESS;
+        }
+        break;
       case STATE_DOUBLE:
         while (1) {
           if (isdigit(symbol)) {
@@ -858,6 +913,7 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
           break;
         } else {
+          ungetc(symbol, stdin);
           word[lenght] = '\0';
           lenght = 0;
           current_token->token_type = TOKEN_LIT_STRING;
@@ -929,6 +985,11 @@ int get_next_token(token* current_token) {
           }
         }
         break;
+      case STATE_UNIT:
+        current_token->token_type = TOKEN_UNIT;
+        current_token->attribute = NULL;
+        lenght = 0;
+        return SUCCESS;
     }
   }
   return SUCCESS;
