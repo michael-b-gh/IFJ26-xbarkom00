@@ -88,6 +88,7 @@ int get_next_token(token* current_token) {
   int symbol = NextSymbol();
   int comm_counter = 0;
   int comm_mul_line = 0;
+  static int parent_count = 0;
   states state = STATE_START;
 
   while (1) {
@@ -103,8 +104,8 @@ int get_next_token(token* current_token) {
     }
     switch (state) {
       case STATE_START:
-        if (symbol == ' ' || symbol == '\n') {  // vygenerovane AI promptom:
-                                                // Zasekava sa mi STATE_COMMENT
+        if (symbol == ' ') {      // vygenerovane AI promptom:
+                                  // Zasekava sa mi STATE_COMMENT
           symbol = NextSymbol();  // vygenerovane AI promptom: Zasekava sa mi
                                   // STATE_COMMENT
           break;  // vygenerovane AI promptom: Zasekava sa mi STATE_COMMENT
@@ -128,8 +129,7 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
-        } else if (symbol == '+') {  // leaving more states so start state dont
-                                     // return values imidiatelly
+        } else if (symbol == '+') {
           state = STATE_PLUS;
           word[lenght] = symbol;
           lenght++;
@@ -170,6 +170,7 @@ int get_next_token(token* current_token) {
           lenght++;
           symbol = NextSymbol();
         } else if (symbol == '(') {
+          parent_count++;
           state = STATE_L_PARENTHESIS;
           word[lenght] = symbol;
           lenght++;
@@ -195,6 +196,36 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == '@') {
+          word[lenght] = symbol;
+          symbol = NextSymbol();
+          while (isalpha(symbol)) {
+            word[lenght] = symbol;
+            lenght++;
+            symbol = NextSymbol();
+          }
+          if (strcmp(word, "main") == 0) {
+            current_token->token_type = TOKEN_MAIN;
+            current_token->attribute = word;
+            return SUCCESS;
+          } else {
+            lenght = 0;
+            free(word);
+            return LEX_ERR;
+          }
+        } else if (symbol == '\n') {
+          if (parent_count > 0) {
+            symbol = NextSymbol();
+            continue;
+          } else {
+            current_token->token_type = TOKEN_EOL;
+            current_token->attribute = NULL;
+            return SUCCESS;
+          }
+        } else {
+          free(word);
+          lenght = 0;
+          return LEX_ERR;
         }  // TODO:add more state transitions
         break;
 
@@ -324,6 +355,7 @@ int get_next_token(token* current_token) {
         return SUCCESS;
       case STATE_L_PARENTHESIS:
         if (symbol == ')') {
+          parent_count--;
           state = STATE_UNIT;
           word[lenght] = symbol;
           lenght++;
@@ -339,6 +371,7 @@ int get_next_token(token* current_token) {
         }
         break;
       case STATE_R_PARENTHESIS:
+        parent_count--;
         ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_R_PARENTHESIS;
