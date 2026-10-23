@@ -141,6 +141,8 @@ void generate_print(char *value) {
  * @param end ending index of the substring
  * @param char variable to store the character at the current index
  * @param substring variable where the substring will be saved into
+ * @param p variable to check if the conditions for the error are met
+ * @param length variable to store the length of the string
  * @return void
  */
 void generate_subStr(char *value, char *start, char *end) {
@@ -156,12 +158,79 @@ void generate_subStr(char *value, char *start, char *end) {
           printf("MOVE LF@%%start %s\n", start, stdout);
           printf("MOVE LF@%%end %s\n", end, stdout);
 
-        //TODO: Implement conditions for start and end index validation
+          printf("DEFVAR LF@%%p\n", stdout);
+          printf("MOVE LF@%%p bool@false\n", stdout);
+          printf("DEFVAR LF@%%length\n", stdout);
+          printf("STRLEN LF@%%length LF@%%value\n", stdout);
+
+          printf("LT LF@%%p LF@%%start int@0\n", stdout);
+          printf("LT LF@%%p LF@%%end int@0\n", stdout);
+          printf("GT LF@%%p LF@%%start LF@%%end\n", stdout);
+          printf("GT LF@%%p LF@%%start LF@%%length\n", stdout);
+          printf("EQ LF@%%p LF@%%start LF@%%length\n", stdout);
+          printf("GT LF@%%p LF@%%end LF@%%length\n", stdout);
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n", stdout);
+
           printf("LABEL $subStr_loop\n", stdout);
           printf("GETCHAR LF@%%char LF@%%value LF@%%start\n", stdout);
           printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n", stdout);
           printf("ADD LF@%%start LF@%%start int@1\n", stdout);
           printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n", stdout);
+          printf("POPFRAME\n", stdout);
+          printf("RETURN", stdout);
+
+          printf("LABEL $subStr_error\n", stdout);
+          printf("DPRINT int@40\n", stdout);
+}
+/**
+ * @brief generates built-in function ord(value: String, index: Int): Int
+ *
+ * @param value string to get the ASCII value from
+ * @param index index of the character to get the ASCII value from
+ * @param char variable to store the character at the current index
+ * @param length variable to store the length of the string
+ * @param p variable to check if the conditions for the error are met
+ * @return void
+ */
+void generate_ord(char *value, char *index) {
+          printf("LABEL $ord\n", stdout);
+          printf("CREATEFRAME\n", stdout);
+          printf("PUSHFRAME\n", stdout);
+          printf("DEFVAR LF@%%value\n", stdout);
+          printf("DEFVAR LF@%%index\n", stdout);
+          printf("DEFVAR LF@%%char\n", stdout);
+          printf("DEFVAR LF@%%length\n", stdout);
+          printf("DEFVAR LF@%%p\n", stdout);
+          printf("MOVE LF@%%value %s\n", value, stdout);
+          printf("MOVE LF@%%index %s\n", index, stdout);
+          printf("STRLEN LF@%%length LF@%%value\n", stdout);
+
+          printf("EQ LF@%%p LF@%%length int@0\n", stdout);
+          printf("LT LF@%%p LF@%%index int@0\n", stdout);
+          printf("EQ LF@%%p LF@%%index LF@%%length\n", stdout);
+          printf("GT LF@%%p LF@%%index LF@%%length\n", stdout);
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n", stdout);
+
+          printf("STRI2INT LF@%%char LF@%%value LF@%%index\n", stdout);
+          printf("POPFRAME\n", stdout);
+          printf("RETURN", stdout);
+
+          printf("LABEL $ord_error\n", stdout);
+          printf("DPRINT int@-1\n", stdout);
+}
+/**
+ * @brief generates built-in function chr(code: Int): String
+ *
+ * @param code ASCII code of the character to create
+ * @param char variable to store the created character
+ * @return void
+ */
+void generate_chr(char *code) {
+          printf("LABEL $chr\n", stdout);
+          printf("CREATEFRAME\n", stdout);
+          printf("PUSHFRAME\n", stdout);
+          printf("DEFVAR LF@%%char\n", stdout);
+          printf("INT2STR LF@%%char %s\n", code, stdout);
           printf("POPFRAME\n", stdout);
           printf("RETURN", stdout);
 }
