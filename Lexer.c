@@ -638,7 +638,7 @@ int get_next_token(token* current_token) {
           } else {
             ungetc(symbol, stdin);
             word[lenght] = '\0';
-            current_token->token_type = TOKEN_INT;
+            current_token->token_type = TOKEN_LIT_INT;
             current_token->attribute = word;
             lenght = 0;
             return SUCCESS;
