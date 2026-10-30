@@ -91,6 +91,7 @@ int get_next_token(token* current_token) {
   static int dent_arr[50] = {0};
   static int new_line = 1;
   static int dent_index = 0;
+  static int last_before_parent = 0;
   int counter = 0;
   states state = STATE_START;
 
@@ -111,6 +112,7 @@ int get_next_token(token* current_token) {
         counter++;
         symbol = NextSymbol();
       }
+
       if (symbol == '\n' || symbol == EOF) {
         new_line = 1;
       } else {
@@ -122,6 +124,7 @@ int get_next_token(token* current_token) {
         }
         if (counter > last_ind) {
           dent_arr[dent_index] = counter;
+          last_before_parent = dent_arr[dent_index] = counter;
           dent_index++;
           new_line = 0;
           ungetc(symbol, stdin);
@@ -133,7 +136,7 @@ int get_next_token(token* current_token) {
             dent_index--;
           }
           ungetc(symbol, stdin);
-          new_line = 1;
+          new_line = 0;
           current_token->token_type = TOKEN_DED;
           current_token->attribute = NULL;
           return SUCCESS;
