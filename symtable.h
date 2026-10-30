@@ -24,7 +24,7 @@ typedef enum {
   DTYPE_DOUBLE,  /**< Type is Double. */
   DTYPE_STRING,  /**< Type is String. */
   DTYPE_UNIT,    /**< Type is Unit, without returning value. */
-  // DTYPE_BOOLEAN, /**< Extension for BOOLTHEN */
+  DTYPE_BOOLEAN, /**< Type is bool */
   DTYPE_ANY /**< Type is Any, used only with params in built-in functions. */
 } DType;
 
