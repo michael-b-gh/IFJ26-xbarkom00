@@ -4,6 +4,7 @@
  * @file Lexer.c
  * @brief Lexer(Lexical analyzer) takes text on input and translate it into
  * Tokens for parser
+ * @author Juraj Pauček (xpaucej00)
  */
 
 #include <ctype.h>
@@ -113,6 +114,16 @@ int get_next_token(token* current_token) {
         symbol = NextSymbol();
       }
 
+      if (parent_count >
+          0) {  // vygenerovane AI promptom: Ako preskocim rovno na moj switch
+        if (counter <= last_before_parent) {
+          free(word);
+          return LEX_ERR;
+        }
+        new_line = 0;
+        goto skip_ind;
+      }
+
       if (symbol == '\n' || symbol == EOF) {
         new_line = 1;
       } else {
@@ -146,6 +157,7 @@ int get_next_token(token* current_token) {
       }
     }
 
+  skip_ind:
     switch (state) {
       case STATE_START:
         if (symbol == ' ') {      // vygenerovane AI promptom:
