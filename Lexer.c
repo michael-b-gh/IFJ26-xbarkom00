@@ -4,7 +4,6 @@
  * @file Lexer.c
  * @brief Lexer(Lexical analyzer) takes text on input and translate it into
  * Tokens for parser
- * @author Juraj Pauček (xpaucej00)
  */
 
 #include <ctype.h>
@@ -89,6 +88,10 @@ int get_next_token(token* current_token) {
   int comm_counter = 0;
   int comm_mul_line = 0;
   static int parent_count = 0;
+  static int dent_arr[50] = {0};
+  static int new_line = 1;
+  static int dent_index = 0;
+  int counter = 0;
   states state = STATE_START;
 
   while (1) {
@@ -102,6 +105,44 @@ int get_next_token(token* current_token) {
       word = check;
       lenght_array = lenght_array * 2;
     }
+
+    if (new_line == 1) {
+      while (symbol == ' ') {
+        counter++;
+        symbol = NextSymbol();
+      }
+      if (symbol == '\n' || symbol == EOF) {
+        new_line = 1;
+      } else {
+        int last_ind;
+        if (dent_index == 0) {
+          last_ind = 0;
+        } else {
+          last_ind = dent_arr[dent_index - 1];
+        }
+        if (counter > last_ind) {
+          dent_arr[dent_index] = counter;
+          dent_index++;
+          new_line = 0;
+          ungetc(symbol, stdin);
+          current_token->token_type = TOKEN_IND;
+          current_token->attribute = NULL;
+          return SUCCESS;
+        } else if (counter < last_ind) {
+          if (dent_index > 0) {
+            dent_index--;
+          }
+          ungetc(symbol, stdin);
+          new_line = 1;
+          current_token->token_type = TOKEN_DED;
+          current_token->attribute = NULL;
+          return SUCCESS;
+        } else {
+          new_line = 0;
+        }
+      }
+    }
+
     switch (state) {
       case STATE_START:
         if (symbol == ' ') {      // vygenerovane AI promptom:
@@ -215,9 +256,11 @@ int get_next_token(token* current_token) {
           }
         } else if (symbol == '\n') {
           if (parent_count > 0) {
+            new_line = 1;
             symbol = NextSymbol();
             continue;
           } else {
+            new_line = 1;
             current_token->token_type = TOKEN_EOL;
             current_token->attribute = NULL;
             return SUCCESS;
@@ -418,85 +461,71 @@ int get_next_token(token* current_token) {
           lenght = 0;
           return LEX_ERR;
         } else if (strcmp(word, "def") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DEF;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "if") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_IF;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "else") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_ELSE;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "do") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DO;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "import") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_IMPORT;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "return") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_RETURN;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "then") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_THEN;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "val") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_VAL;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "var") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_VAR;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "while") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_WHILE;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Double") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DOUBLE;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "String") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_STRING;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Int") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_INT;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Unit") == 0) {
-          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_UNIT;
           current_token->attribute = word;
           lenght = 0;
@@ -607,6 +636,7 @@ int get_next_token(token* current_token) {
         }
         state = STATE_START;
         lenght = 0;
+        new_line = 1;
         current_token->token_type = TOKEN_EOL;
         current_token->attribute = NULL;
         return SUCCESS;
@@ -649,6 +679,7 @@ int get_next_token(token* current_token) {
             }
             symbol = NextSymbol();
           }
+          new_line = 1;
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           return SUCCESS;
