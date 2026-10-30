@@ -48,7 +48,8 @@ typedef enum {
   TOKEN_R_PARENTHESIS,
   TOKEN_COMMA,
   TOKEN_COLON,
-  TOKEN_PROLOG
+  TOKEN_PROLOG,
+  TOKEN_MAIN
 } token_t;
 
 typedef struct {
@@ -56,6 +57,6 @@ typedef struct {
   char* attribute;
 } token;
 
-int get_next_token(token* current_token) {};
+int get_next_token(token* current_token);
 
 #endif
