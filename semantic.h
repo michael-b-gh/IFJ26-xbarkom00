@@ -34,4 +34,17 @@ DType check_binary_op(DType leftType, DType rightType, token_t op);
  */
 DType check_unary_op(DType operandType, token_t op);
 
+/**
+ * @brief Returns data type of operand in expression.
+ *
+ * @param tok operand token
+ * @param symtable table to search the variable in
+ * @param err_code SUCCESS on success or UNDEF_SEM_ERR if the variable
+ * doesn't exist or it is a function
+ *
+ * @return DTYPE of operand or DTYPE_UNKNOWN if the variable doesn't exist or
+ * token is not operand
+ */
+DType get_term_type(token *tok, SymTable *symtable, int *err_code);
+
 #endif // SEMANTIC_H

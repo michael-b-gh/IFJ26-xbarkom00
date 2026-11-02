@@ -72,3 +72,27 @@ DType check_unary_op(DType operandType, token_t op) {
     return DTYPE_UNKNOWN;
   }
 }
+
+DType get_term_type(token *tok, SymTable *symtable, int *err_code) {
+  *err_code = SUCCESS;
+  switch (tok->token_type) {
+  case TOKEN_LIT_INT:
+    return DTYPE_INT;
+  case TOKEN_LIT_DOUBLE:
+    return DTYPE_DOUBLE;
+  case TOKEN_LIT_STRING:
+    return DTYPE_STRING;
+  case TOKEN_UNIT:
+    return DTYPE_UNIT;
+  case TOKEN_ID: {
+    Symbol *symbol = symTableSearch(symtable, tok->attribute);
+    if (symbol == NULL || symbol->kind != SYM_VARIABLE) {
+      *err_code = UNDEF_SEM_ERR;
+      return DTYPE_UNKNOWN;
+    }
+    return symbol->type;
+  }
+  default:
+    return DTYPE_UNKNOWN;
+  }
+}
