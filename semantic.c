@@ -7,6 +7,7 @@
  */
 
 #include "semantic.h"
+#include "error.h"
 #include <stdbool.h>
 
 DType check_binary_op(DType leftType, DType rightType, token_t op) {
@@ -95,4 +96,22 @@ DType get_term_type(token *tok, SymTable *symtable, int *err_code) {
   default:
     return DTYPE_UNKNOWN;
   }
+}
+
+int check_assignment(SymTable *symtable, const char *name) {
+  Symbol *symbol = symTableSearch(symtable, name);
+  if (symbol == NULL || symbol->kind == SYM_FUNCTION)
+    return UNDEF_SEM_ERR;
+  if (symbol->isMutable == false)
+    return VAR_SEM_ERR;
+
+  return SUCCESS;
+}
+
+int check_main_function(size_t paramCount, DType returnType) {
+  if (paramCount != 0)
+    return PARAM_SEM_ERR;
+  if (returnType != DTYPE_UNIT)
+    return TYPE_INC_SEM_ERR;
+  return SUCCESS;
 }

@@ -47,4 +47,29 @@ DType check_unary_op(DType operandType, token_t op);
  */
 DType get_term_type(token *tok, SymTable *symtable, int *err_code);
 
+/**
+ * @brief Verifies if variable exists and is mutable. (x=..)
+ *
+ * @param symtable table to search the variable in.
+ * @param name identifier for variable on the left side.
+ *
+ * @return UNDEF_SEM_ERR if variable doesn't exist or it is a function.
+ *  VAR_SEM_ERR if variable is not mutable.
+ *  SUCCESS if variable is mutable.
+ */
+int check_assignment(SymTable *symtable, const char *name);
+
+/**
+ * @brief Verifies that \@main has no parameters and returns DTYPE_UNIT.
+ *
+ * @param paramCount number of parameters of the function.
+ * @param returnType return type of the function.
+ *
+ * @return  PARAM_SEM_ERR if number of parameters is not 0.
+ * TYPE_INC_SEM_ERR if return type is not DTYPE_UNIT.
+ * SUCCESS if function has number of parameters 0 and return type is not
+ * DTYPE_UNIT.
+ */
+int check_main_function(size_t paramCount, DType returnType);
+
 #endif // SEMANTIC_H
