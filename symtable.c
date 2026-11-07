@@ -6,9 +6,9 @@
  * @author Lukas Zelenak (xzelenl00)
  */
 
+#include "symtable.h"
 #include "error.h"
 #include "hashtable.h"
-#include "symtable.h"
 
 #include <stdlib.h>
 
@@ -124,12 +124,67 @@ void symTablePopScope(SymTable *symtable) {
   symtable->scopes[symtable->count] = NULL;
 }
 
-// Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType
-// type,
-//                                bool isMutable);
-// Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
-//                                size_t paramCount, const DType *paramTypes,
-//                                DType returnType, bool isMain);
+Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType type,
+                               bool isMutable) {
+  if (symtable == NULL)
+    exit(INT_ERR);
+  Symbol *newSymbol = calloc(1, sizeof(Symbol));
+  if (newSymbol == NULL)
+    exit(INT_ERR);
+  newSymbol->kind = SYM_VARIABLE;
+  newSymbol->type = type;
+  newSymbol->isMutable = isMutable;
+  HashTableInsertResult result =
+      hashTableInsert(symtable->scopes[symtable->count - 1], name, newSymbol);
+  if (result == HASHTABLE_ITEM_INSERTED) {
+    return newSymbol;
+  } else if (result == HASHTABLE_ITEM_EXISTS) {
+    free(newSymbol);
+    return NULL;
+  } else {
+    free(newSymbol);
+    exit(INT_ERR);
+  }
+}
+
+Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
+                               size_t paramCount, const DType *paramTypes,
+                               DType returnType, bool isMain) {
+  if (symtable == NULL)
+    exit(INT_ERR);
+  Symbol *newSymbol = calloc(1, sizeof(Symbol));
+  if (newSymbol == NULL)
+    exit(INT_ERR);
+  newSymbol->kind = SYM_FUNCTION;
+  newSymbol->paramCount = paramCount;
+  newSymbol->returnType = returnType;
+  newSymbol->isMain = isMain;
+  newSymbol->isDefined = true;
+  if (paramCount > 0) {
+    newSymbol->paramTypes = calloc(paramCount, sizeof(DType));
+    if (newSymbol->paramTypes == NULL) {
+      free(newSymbol);
+      exit(INT_ERR);
+    }
+    for (size_t i = 0; i < paramCount; i++) {
+      newSymbol->paramTypes[i] = paramTypes[i];
+    }
+  }
+
+  HashTableInsertResult result =
+      hashTableInsert(symtable->scopes[0], name, newSymbol);
+  if (result == HASHTABLE_ITEM_INSERTED) {
+    return newSymbol;
+  } else if (result == HASHTABLE_ITEM_EXISTS) {
+    free(newSymbol->paramTypes);
+    free(newSymbol);
+    return NULL;
+  } else {
+    free(newSymbol->paramTypes);
+    free(newSymbol);
+    exit(INT_ERR);
+  }
+}
 
 Symbol *symTableSearch(const SymTable *symtable, const char *name) {
   if (symtable == NULL)

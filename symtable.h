@@ -53,7 +53,8 @@ struct Symbol {
 
 /**
  * @brief Allocates empty symtable with one opened global scope. On memory alloc
- * failure program exits with INT_ERR.
+ * failure program exits with INT_ERR. Built-in functions are already defined in
+ * the global scope.
  *
  * @return Pointer to new symtable. Must be freed with symTableFree
  */
@@ -122,15 +123,6 @@ Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
  *         NULL If symtable is NULL.
  */
 Symbol *symTableSearch(const SymTable *symtable, const char *name);
-
-/**
- * @brief
- *
- * @param symtable
- *
- * @return
- */
-// void symTableDebugPrint(SymTable *symtable);
 
 /**
  * @brief Frees created symtable and all symbols in the scopes. If NULL nothing
