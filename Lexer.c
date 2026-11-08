@@ -56,7 +56,6 @@ typedef enum {
   STATE_R_PARENTHESIS,
   STATE_COMMA,
   STATE_COLON,
-  STATE_PROLOG,
   STATE_EXP,
   STATE_EXP_SIGN,
   STATE_EXP_NUM,
@@ -66,7 +65,8 @@ typedef enum {
   STATE_TWO_QUOTE,
   STATE_STRING_START,
   STATE_STR_CONTROL,
-  STATE_MUL_COMMENT
+  STATE_MUL_COMMENT,
+  STATE_DOT
 } states;
 
 /**
@@ -254,17 +254,21 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
         } else if (symbol == '@') {
           word[lenght] = symbol;
+          lenght++;
           symbol = NextSymbol();
           while (isalpha(symbol)) {
             word[lenght] = symbol;
             lenght++;
             symbol = NextSymbol();
           }
-          if (strcmp(word, "main") == 0) {
+          if (strcmp(word, "@main") == 0) {
+            word[lenght] = '\0';
+            ungetc(symbol, stdin);
             current_token->token_type = TOKEN_MAIN;
             current_token->attribute = word;
             return SUCCESS;
           } else {
+            ungetc(symbol, stdin);
             lenght = 0;
             free(word);
             return LEX_ERR;
@@ -288,9 +292,8 @@ int get_next_token(token* current_token) {
           free(word);
           lenght = 0;
           return LEX_ERR;
-        }  // TODO:add more state transitions
+        }
         break;
-
       case STATE_PLUS:
         ungetc(symbol, stdin);
         word[lenght] = '\0';
@@ -476,51 +479,61 @@ int get_next_token(token* current_token) {
           lenght = 0;
           return LEX_ERR;
         } else if (strcmp(word, "def") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DEF;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "if") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_IF;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "else") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_ELSE;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "do") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DO;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "import") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_IMPORT;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "return") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_RETURN;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "then") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_THEN;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "val") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_VAL;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "var") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_VAR;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "while") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_WHILE;
           current_token->attribute = word;
           lenght = 0;
@@ -531,16 +544,19 @@ int get_next_token(token* current_token) {
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "String") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_STRING;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Int") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_INT;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Unit") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_UNIT;
           current_token->attribute = word;
           lenght = 0;
