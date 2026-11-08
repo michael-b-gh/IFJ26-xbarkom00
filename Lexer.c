@@ -248,10 +248,9 @@ int get_next_token(token* current_token) {
           lenght++;
           symbol = NextSymbol();
         } else if (symbol == '.') {
-          state = STATE_DOUBLE;
+          state = STATE_DOT;
           word[lenght] = symbol;
           lenght++;
-          symbol = NextSymbol();
         } else if (symbol == '@') {
           word[lenght] = symbol;
           lenght++;
@@ -321,6 +320,19 @@ int get_next_token(token* current_token) {
         ungetc(symbol, stdin);
         word[lenght] = '\0';
         current_token->token_type = TOKEN_MUL;
+        current_token->attribute = word;
+        lenght = 0;
+        return SUCCESS;
+      case STATE_DOT:
+        symbol = NextSymbol();
+        if (isdigit(symbol)) {
+          state = STATE_DOUBLE;
+          word[lenght] = symbol;
+          break;
+        }
+        ungetc(symbol, stdin);
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_DOT;
         current_token->attribute = word;
         lenght = 0;
         return SUCCESS;
