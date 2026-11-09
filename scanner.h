@@ -48,8 +48,8 @@ typedef enum {
   TOKEN_R_PARENTHESIS,
   TOKEN_COMMA,
   TOKEN_COLON,
-  TOKEN_PROLOG,
-  TOKEN_MAIN
+  TOKEN_MAIN,
+  TOKEN_DOT
 } token_t;
 
 typedef struct {
