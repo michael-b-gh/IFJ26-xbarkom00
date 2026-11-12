@@ -98,13 +98,28 @@ DType get_term_type(token *tok, SymTable *symtable, int *err_code) {
   }
 }
 
-int check_assignment(SymTable *symtable, const char *name) {
+bool is_type_compatible(DType target, DType value) {
+  if (value == DTYPE_UNKNOWN || value == DTYPE_BOOLEAN)
+    return false;
+  if (target == DTYPE_ANY)
+    return true;
+  if (value == target)
+    return true;
+  if (target == DTYPE_DOUBLE && value == DTYPE_INT) {
+    return true;
+  }
+
+  return false;
+}
+
+int check_assignment(SymTable *symtable, const char *name, DType rhsType) {
   Symbol *symbol = symTableSearch(symtable, name);
   if (symbol == NULL || symbol->kind == SYM_FUNCTION)
     return UNDEF_SEM_ERR;
   if (symbol->isMutable == false)
     return VAR_SEM_ERR;
-
+  if (!is_type_compatible(symbol->type, rhsType))
+    return TYPE_INC_SEM_ERR;
   return SUCCESS;
 }
 
@@ -113,5 +128,39 @@ int check_main_function(size_t paramCount, DType returnType) {
     return PARAM_SEM_ERR;
   if (returnType != DTYPE_UNIT)
     return TYPE_INC_SEM_ERR;
+  return SUCCESS;
+}
+
+int check_variable_def(SymTable *symtable, const char *name,
+                       DType annotatedType, DType initType, bool isMutable) {
+  if (initType == DTYPE_UNKNOWN || initType == DTYPE_BOOLEAN)
+    return TYPE_INC_SEM_ERR;
+  DType finalType;
+  if (annotatedType == DTYPE_UNKNOWN) {
+    finalType = initType;
+  } else if (!is_type_compatible(annotatedType, initType)) {
+    return TYPE_INC_SEM_ERR;
+  } else {
+    finalType = annotatedType;
+  }
+  if (symTableInsertVariable(symtable, name, finalType, isMutable) == NULL)
+    return REDEF_SEM_ERR;
+  return SUCCESS;
+}
+
+int check_function_call(SymTable *symtable, const char *funcName,
+                        size_t argCount, const DType *argTypes,
+                        DType *outReturnType) {
+  Symbol *symbol = symTableSearch(symtable, funcName);
+  if (symbol == NULL || symbol->kind != SYM_FUNCTION) {
+    return UNDEF_SEM_ERR;
+  }
+  if (argCount != symbol->paramCount)
+    return PARAM_SEM_ERR;
+  for (size_t i = 0; i < argCount; i++) {
+    if (!is_type_compatible(symbol->paramTypes[i], argTypes[i]))
+      return PARAM_SEM_ERR;
+  }
+  *outReturnType = symbol->returnType;
   return SUCCESS;
 }
