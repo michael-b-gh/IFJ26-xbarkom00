@@ -162,7 +162,7 @@ size_t hashTableSize(const HashTable *table) {
 void *hashTableIndexValue(const HashTable *table, size_t index) {
   if (table == NULL)
     return NULL;
-  if (index > table->size)
+  if (index >= table->size)
     return NULL;
   if (table->items[index].used) {
     return table->items[index].value;
