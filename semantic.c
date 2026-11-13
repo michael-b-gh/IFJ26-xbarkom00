@@ -164,3 +164,12 @@ int check_function_call(SymTable *symtable, const char *funcName,
   *outReturnType = symbol->returnType;
   return SUCCESS;
 }
+
+int check_main_exists(SymTable *symtable) {
+  size_t count = symTableMainCount(symtable);
+  if (count == 0)
+    return UNDEF_SEM_ERR;
+  if (count > 1)
+    return REDEF_SEM_ERR;
+  return SUCCESS;
+}

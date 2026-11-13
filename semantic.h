@@ -121,4 +121,15 @@ int check_variable_def(SymTable *symtable, const char *name,
 int check_function_call(SymTable *symtable, const char *funcName,
                         size_t argCount, const DType *argTypes,
                         DType *outReturnType);
+
+/**
+ * @brief Checks that the program has exactly one \@main function.
+ *
+ * @param symtable table to search in.
+ *
+ * @return UNDEF_SEM_ERR If number of main functions is 0.
+ * REDEF_SEM_ERR If number of main functions is more than 1.
+ * SUCCESS If number of main functions is exactly 1.
+ */
+int check_main_exists(SymTable *symtable);
 #endif // SEMANTIC_H
