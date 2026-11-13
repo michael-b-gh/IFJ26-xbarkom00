@@ -17,7 +17,7 @@
  * @return void
  */
 void generate_read(char *var, char *type) {
-          printf("READ %s %s\n", var, type, stdout);
+          printf("READ %s %s\n", var, type);
 }
 
 /**
@@ -27,7 +27,7 @@ void generate_read(char *var, char *type) {
  * @return void
  */
 void generate_write(char *symb) {
-          printf("WRITE %s\n", symb, stdout);
+          printf("WRITE %s\n", symb);
 }
 
 /**
@@ -38,7 +38,7 @@ void generate_write(char *symb) {
  * @return void
  */
 void generate_type(char *var, char *symb) {
-          printf("TYPE %s %s\n", var, symb, stdout);
+          printf("TYPE %s %s\n", var, symb);
 }
 
 /**
@@ -50,7 +50,7 @@ void generate_type(char *var, char *symb) {
  * @return void
  */
 void generate_add(char *var, char *symb1, char *symb2) {
-          printf("ADD %s %s %s\n", var, symb1, symb2, stdout);
+          printf("ADD %s %s %s\n", var, symb1, symb2);
 }
 
 /**
@@ -62,7 +62,7 @@ void generate_add(char *var, char *symb1, char *symb2) {
  * @return void
  */
 void generate_sub(char *var, char *symb1, char *symb2) {
-          printf("SUB %s %s %s\n", var, symb1, symb2, stdout);
+          printf("SUB %s %s %s\n", var, symb1, symb2);
 }
 
 /**
@@ -74,7 +74,7 @@ void generate_sub(char *var, char *symb1, char *symb2) {
  * @return void
  */
 void generate_mul(char *var, char *symb1, char *symb2) {
-          printf("MUL %s %s %s\n", var, symb1, symb2, stdout);
+          printf("MUL %s %s %s\n", var, symb1, symb2);
 }
 
 /**
@@ -86,7 +86,7 @@ void generate_mul(char *var, char *symb1, char *symb2) {
  * @return void
  */
 void generate_div(char *var, char *symb1, char *symb2) {
-          printf("DIV %s %s %s\n", var, symb1, symb2, stdout);
+          printf("DIV %s %s %s\n", var, symb1, symb2);
 }
 
 /**
@@ -98,7 +98,7 @@ void generate_div(char *var, char *symb1, char *symb2) {
  * @return void
  */
 void generate_idiv(char *var, char *symb1, char *symb2) {
-          printf("IDIV %s %s %s\n", var, symb1, symb2, stdout);
+          printf("IDIV %s %s %s\n", var, symb1, symb2);
 }
 
 
@@ -109,13 +109,13 @@ void generate_idiv(char *var, char *symb1, char *symb2) {
  * @return void
  */
 void generate_readInt() {
-          printf("LABEL $readInt\n", stdout);
-          printf("CREATEFRAME\n", stdout);
-          printf("PUSHFRAME\n", stdout);
-          printf("DEFVAR LF@%%var\n", stdout);
-          printf("READ LF@%%var int\n", stdout);
-          printf("POPFRAME\n", stdout);
-          printf("RETURN", stdout);
+          printf("LABEL $readInt\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%var\n");
+          printf("READ LF@%%var int\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 }
 /**
  * @brief generates built-in function print(value: Any): Unit
@@ -124,12 +124,12 @@ void generate_readInt() {
  * @return void
  */
 void generate_print(char *value) {
-          printf("LABEL $print\n", stdout);
-          printf("CREATEFRAME\n", stdout);
-          printf("PUSHFRAME\n", stdout);
-          printf("WRITE %s\n", value, stdout);
-          printf("POPFRAME\n", stdout);
-          printf("RETURN", stdout);
+          printf("LABEL $print\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("WRITE %s\n", value);
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 }
 /**
  * @brief generates built-in function subStr(value: String, start: Int, end: Int): String
@@ -144,41 +144,41 @@ void generate_print(char *value) {
  * @return void
  */
 void generate_subStr(char *value, char *start, char *end) {
-          printf("LABEL $subStr\n", stdout);
-          printf("CREATEFRAME\n", stdout);
-          printf("PUSHFRAME\n", stdout);
-          printf("DEFVAR LF@%%value\n", stdout);
-          printf("DEFVAR LF@%%start\n", stdout);
-          printf("DEFVAR LF@%%end\n", stdout);
-          printf("DEFVAR LF@%%char\n", stdout);
-          printf("DEFVAR LF@%%substring\n", stdout);
-          printf("MOVE LF@%%value %s\n", value, stdout);
-          printf("MOVE LF@%%start %s\n", start, stdout);
-          printf("MOVE LF@%%end %s\n", end, stdout);
+          printf("LABEL $subStr\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%start\n");
+          printf("DEFVAR LF@%%end\n");
+          printf("DEFVAR LF@%%char\n");
+          printf("DEFVAR LF@%%substring\n");
+          printf("MOVE LF@%%value %s\n", value);
+          printf("MOVE LF@%%start %s\n", start);
+          printf("MOVE LF@%%end %s\n", end);
 
-          printf("DEFVAR LF@%%p\n", stdout);
-          printf("MOVE LF@%%p bool@false\n", stdout);
-          printf("DEFVAR LF@%%length\n", stdout);
-          printf("STRLEN LF@%%length LF@%%value\n", stdout);
+          printf("DEFVAR LF@%%p\n");
+          printf("MOVE LF@%%p bool@false\n");
+          printf("DEFVAR LF@%%length\n");
+          printf("STRLEN LF@%%length LF@%%value\n");
 
-          printf("LT LF@%%p LF@%%start int@0\n", stdout);
-          printf("LT LF@%%p LF@%%end int@0\n", stdout);
-          printf("GT LF@%%p LF@%%start LF@%%end\n", stdout);
-          printf("GT LF@%%p LF@%%start LF@%%length\n", stdout);
-          printf("EQ LF@%%p LF@%%start LF@%%length\n", stdout);
-          printf("GT LF@%%p LF@%%end LF@%%length\n", stdout);
-          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n", stdout);
+          printf("LT LF@%%p LF@%%start int@0\n");
+          printf("LT LF@%%p LF@%%end int@0\n");
+          printf("GT LF@%%p LF@%%start LF@%%end\n");
+          printf("GT LF@%%p LF@%%start LF@%%length\n");
+          printf("EQ LF@%%p LF@%%start LF@%%length\n");
+          printf("GT LF@%%p LF@%%end LF@%%length\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
 
-          printf("LABEL $subStr_loop\n", stdout);
-          printf("GETCHAR LF@%%char LF@%%value LF@%%start\n", stdout);
-          printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n", stdout);
-          printf("ADD LF@%%start LF@%%start int@1\n", stdout);
-          printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n", stdout);
-          printf("POPFRAME\n", stdout);
-          printf("RETURN", stdout);
+          printf("LABEL $subStr_loop\n");
+          printf("GETCHAR LF@%%char LF@%%value LF@%%start\n");
+          printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n");
+          printf("ADD LF@%%start LF@%%start int@1\n");
+          printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 
-          printf("LABEL $subStr_error\n", stdout);
-          printf("EXIT int@40\n", stdout);
+          printf("LABEL $subStr_error\n");
+          printf("EXIT int@40\n");
 }
 /**
  * @brief generates built-in function ord(value: String, index: Int): Int
@@ -191,30 +191,30 @@ void generate_subStr(char *value, char *start, char *end) {
  * @return void
  */
 void generate_ord(char *value, char *index) {
-          printf("LABEL $ord\n", stdout);
-          printf("CREATEFRAME\n", stdout);
-          printf("PUSHFRAME\n", stdout);
-          printf("DEFVAR LF@%%value\n", stdout);
-          printf("DEFVAR LF@%%index\n", stdout);
-          printf("DEFVAR LF@%%char\n", stdout);
-          printf("DEFVAR LF@%%length\n", stdout);
-          printf("DEFVAR LF@%%p\n", stdout);
-          printf("MOVE LF@%%value %s\n", value, stdout);
-          printf("MOVE LF@%%index %s\n", index, stdout);
-          printf("STRLEN LF@%%length LF@%%value\n", stdout);
+          printf("LABEL $ord\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%index\n");
+          printf("DEFVAR LF@%%char\n");
+          printf("DEFVAR LF@%%length\n");
+          printf("DEFVAR LF@%%p\n");
+          printf("MOVE LF@%%value %s\n", value);
+          printf("MOVE LF@%%index %s\n", index);
+          printf("STRLEN LF@%%length LF@%%value\n");
 
-          printf("EQ LF@%%p LF@%%length int@0\n", stdout);
-          printf("LT LF@%%p LF@%%index int@0\n", stdout);
-          printf("EQ LF@%%p LF@%%index LF@%%length\n", stdout);
-          printf("GT LF@%%p LF@%%index LF@%%length\n", stdout);
-          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n", stdout);
+          printf("EQ LF@%%p LF@%%length int@0\n");
+          printf("LT LF@%%p LF@%%index int@0\n");
+          printf("EQ LF@%%p LF@%%index LF@%%length\n");
+          printf("GT LF@%%p LF@%%index LF@%%length\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
 
-          printf("STRI2INT LF@%%char LF@%%value LF@%%index\n", stdout);
-          printf("POPFRAME\n", stdout);
-          printf("RETURN", stdout);
+          printf("STRI2INT LF@%%char LF@%%value LF@%%index\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 
-          printf("LABEL $ord_error\n", stdout);
-          printf("EXIT int@-1\n", stdout);
+          printf("LABEL $ord_error\n");
+          printf("EXIT int@-1\n");
 }
 /**
  * @brief generates built-in function chr(code: Int): String
@@ -224,11 +224,11 @@ void generate_ord(char *value, char *index) {
  * @return void
  */
 void generate_chr(char *code) {
-          printf("LABEL $chr\n", stdout);
-          printf("CREATEFRAME\n", stdout);
-          printf("PUSHFRAME\n", stdout);
-          printf("DEFVAR LF@%%char\n", stdout);
-          printf("INT2STR LF@%%char %s\n", code, stdout);
-          printf("POPFRAME\n", stdout);
-          printf("RETURN", stdout);
+          printf("LABEL $chr\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%char\n");
+          printf("INT2STR LF@%%char %s\n", code);
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 }
