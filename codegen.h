@@ -180,7 +180,7 @@ void generate_subStr(char *value, char *start, char *end) {
           printf("RETURN\n");
 
           printf("LABEL $subStr_error\n");
-          printf("DPRINT int@40\n");
+          printf("EXIT int@40\n");
 }
 /**
  * @brief generates built-in function ord(value: String, index: Int): Int
@@ -216,7 +216,7 @@ void generate_ord(char *value, char *index) {
           printf("RETURN\n");
 
           printf("LABEL $ord_error\n");
-          printf("DPRINT int@-1\n");
+          printf("EXIT int@-1\n");
 }
 /**
  * @brief generates built-in function chr(code: Int): String
