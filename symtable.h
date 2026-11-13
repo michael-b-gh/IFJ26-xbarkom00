@@ -125,6 +125,15 @@ Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
 Symbol *symTableSearch(const SymTable *symtable, const char *name);
 
 /**
+ * @brief Counts functions marked with \@main in the global scope.
+ *
+ * @param symtable Table to count in.
+ *
+ * @return Number of main functions, 0 if symtable is NULL.
+ */
+size_t symTableMainCount(const SymTable *symtable);
+
+/**
  * @brief Frees created symtable and all symbols in the scopes. If NULL nothing
  * will be freed.
  *

@@ -198,6 +198,21 @@ Symbol *symTableSearch(const SymTable *symtable, const char *name) {
   return NULL;
 }
 
+size_t symTableMainCount(const SymTable *symtable) {
+  if (symtable == NULL)
+    return 0;
+  size_t count = 0;
+  size_t htSize = hashTableSize(symtable->scopes[0]);
+  for (size_t i = 0; i < htSize; i++) {
+    Symbol *symbol = hashTableIndexValue(symtable->scopes[0], i);
+    if (symbol != NULL && symbol->kind == SYM_FUNCTION &&
+        symbol->isMain == true) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void symTableFree(SymTable *symtable) {
   if (symtable == NULL)
     return;
