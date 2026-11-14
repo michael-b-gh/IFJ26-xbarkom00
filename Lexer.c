@@ -93,7 +93,7 @@ int get_next_token(token* current_token) {
   static int new_line = 1;
   static int dent_index = 0;
   static int last_before_parent = 0;
-  int counter = 0;
+  static int counter = 0;
   states state = STATE_START;
 
   while (1) {
@@ -121,10 +121,12 @@ int get_next_token(token* current_token) {
           return LEX_ERR;
         }
         new_line = 0;
+        counter = 0;
         goto skip_ind;
       }
 
-      if (symbol == '\n' || symbol == EOF) {
+      if (symbol == '\n') {
+        counter = 0;
         new_line = 1;
       } else {
         int last_ind;
@@ -133,26 +135,43 @@ int get_next_token(token* current_token) {
         } else {
           last_ind = dent_arr[dent_index - 1];
         }
+
         if (counter > last_ind) {
-          dent_arr[dent_index] = counter;
-          last_before_parent = dent_arr[dent_index] = counter;
-          dent_index++;
-          new_line = 0;
-          ungetc(symbol, stdin);
-          current_token->token_type = TOKEN_IND;
-          current_token->attribute = NULL;
-          return SUCCESS;
-        } else if (counter < last_ind) {
-          if (dent_index > 0) {
-            dent_index--;
+          if (symbol == EOF) {
+            counter = 0;
+            new_line = 0;
+          } else {
+            dent_arr[dent_index] = counter;
+            last_before_parent = counter;
+            dent_index++;
+            new_line = 0;
+            counter = 0;
+            ungetc(symbol, stdin);
+            current_token->token_type = TOKEN_IND;
+            current_token->attribute = NULL;
+            return SUCCESS;
           }
-          ungetc(symbol, stdin);
-          new_line = 0;
+        } else if (counter < last_ind) {
+          dent_index--;
+          int new_max_ind;
+          if (dent_index == 0) {
+            new_max_ind = 0;
+          } else {
+            new_max_ind = dent_arr[dent_index - 1];
+          }
+          if (counter > new_max_ind) {
+            free(word);
+            return LEX_ERR;
+          }
+          if (symbol != EOF) {
+            ungetc(symbol, stdin);
+          }
           current_token->token_type = TOKEN_DED;
           current_token->attribute = NULL;
           return SUCCESS;
         } else {
           new_line = 0;
+          counter = 0;
         }
       }
     }
@@ -290,15 +309,29 @@ int get_next_token(token* current_token) {
             return SUCCESS;
           }
         } else if (symbol == EOF) {
-          current_token->token_type = TOKEN_EOF;
-          current_token->attribute = NULL;
-          return SUCCESS;
+          if (new_line == 0 && dent_index > 0) {
+            new_line = 1;
+            counter = 0;
+            current_token->token_type = TOKEN_EOL;
+            current_token->attribute = NULL;
+            return SUCCESS;
+          } else if (dent_index > 0) {
+            dent_index--;
+            current_token->token_type = TOKEN_DED;
+            current_token->attribute = NULL;
+            return SUCCESS;
+          } else {
+            current_token->token_type = TOKEN_EOF;
+            current_token->attribute = NULL;
+            return SUCCESS;
+          }
         } else {
-          free(word);
           lenght = 0;
+          free(word);
           return LEX_ERR;
         }
         break;
+
       case STATE_PLUS:
         ungetc(symbol, stdin);
         word[lenght] = '\0';
