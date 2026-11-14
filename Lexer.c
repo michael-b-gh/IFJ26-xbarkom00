@@ -180,6 +180,12 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == ';') {
+          new_line = 0;
+          current_token->token_type = TOKEN_EOL;
+          current_token->attribute = NULL;
+          lenght = 0;
+          return 0;
         } else if (symbol == '\"') {
           state = STATE_STRING_START;
           word[lenght] = symbol;
@@ -301,12 +307,12 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_MINUS:
-          ungetc(symbol, stdin);
-          word[lenght] = '\0';
-          current_token->token_type = TOKEN_MINUS;
-          current_token->attribute = word;
-          lenght = 0;
-          return SUCCESS;
+        ungetc(symbol, stdin);
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_MINUS;
+        current_token->attribute = word;
+        lenght = 0;
+        return SUCCESS;
         break;
       case STATE_MUL:
         ungetc(symbol, stdin);
@@ -423,12 +429,12 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_L_PARENTHESIS:
-          ungetc(symbol, stdin);
-          word[lenght] = '\0';
-          current_token->token_type = TOKEN_L_PARENTHESIS;
-          current_token->attribute = word;
-          lenght = 0;
-          return SUCCESS;
+        ungetc(symbol, stdin);
+        word[lenght] = '\0';
+        current_token->token_type = TOKEN_L_PARENTHESIS;
+        current_token->attribute = word;
+        lenght = 0;
+        return SUCCESS;
         break;
       case STATE_R_PARENTHESIS:
         parent_count--;
