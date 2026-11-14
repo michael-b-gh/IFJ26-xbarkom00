@@ -423,21 +423,12 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_L_PARENTHESIS:
-        if (symbol == ')') {
-          parent_count--;
-          state = STATE_UNIT;
-          word[lenght] = symbol;
-          lenght++;
-          symbol = NextSymbol();
-          break;
-        } else {
           ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_L_PARENTHESIS;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
-        }
         break;
       case STATE_R_PARENTHESIS:
         parent_count--;
@@ -1102,11 +1093,6 @@ int get_next_token(token* current_token) {
           }
         }
         break;
-      case STATE_UNIT:
-        current_token->token_type = TOKEN_UNIT;
-        current_token->attribute = NULL;
-        lenght = 0;
-        return SUCCESS;
     }
   }
   return SUCCESS;
