@@ -301,20 +301,12 @@ int get_next_token(token* current_token) {
         lenght = 0;
         return SUCCESS;
       case STATE_MINUS:
-        if (isdigit(symbol)) {
-          state = STATE_INT;
-          word[lenght] = symbol;
-          lenght++;
-          symbol = NextSymbol();
-          break;
-        } else {
           ungetc(symbol, stdin);
           word[lenght] = '\0';
           current_token->token_type = TOKEN_MINUS;
           current_token->attribute = word;
           lenght = 0;
           return SUCCESS;
-        }
         break;
       case STATE_MUL:
         ungetc(symbol, stdin);
