@@ -534,6 +534,7 @@ int get_next_token(token* current_token) {
           lenght = 0;
           return SUCCESS;
         } else if (strcmp(word, "Double") == 0) {
+          ungetc(symbol, stdin);
           current_token->token_type = TOKEN_DOUBLE;
           current_token->attribute = word;
           lenght = 0;
