@@ -664,7 +664,7 @@ int get_next_token(token* current_token) {
         }
         break;
       case STATE_COMMENT:
-        while (symbol != '\n' || symbol == EOF) {
+        while (symbol != '\n' && symbol != EOF) {
           symbol = NextSymbol();
         }
         state = STATE_START;
@@ -953,17 +953,17 @@ int get_next_token(token* current_token) {
         }
         break;
       case STATE_STRING:
-        if (lenght >= lenght_array) {
-          char* check = realloc(word, (lenght_array * 2) * sizeof(char));
-          if (check == NULL) {
-            printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
-            free(word);
-            return INT_ERR;
-          }
-          word = check;
-          lenght_array = lenght_array * 2;
-        }
         while (1) {
+          if (lenght >= lenght_array) {
+            char* check = realloc(word, (lenght_array * 2) * sizeof(char));
+            if (check == NULL) {
+              printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
+              free(word);
+              return INT_ERR;
+            }
+            word = check;
+            lenght_array = lenght_array * 2;
+          }
           if (symbol == '\"') {
             word[lenght] = symbol;
             lenght++;
@@ -973,6 +973,10 @@ int get_next_token(token* current_token) {
             lenght = 0;
             return SUCCESS;
           } else if (symbol == '\n' || symbol == '\r') {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
+          } else if (symbol == EOF) {
             free(word);
             lenght = 0;
             return LEX_ERR;
@@ -1009,7 +1013,6 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
         }
-        break;
       case STATE_TWO_QUOTE:
         if (lenght >= lenght_array) {
           char* check = realloc(word, (lenght_array * 2) * sizeof(char));
@@ -1053,6 +1056,10 @@ int get_next_token(token* current_token) {
             lenght++;
             symbol = NextSymbol();
             break;
+          } else if (symbol == EOF) {
+            free(word);
+            lenght = 0;
+            return LEX_ERR;
           } else {
             word[lenght] = symbol;
             lenght++;
