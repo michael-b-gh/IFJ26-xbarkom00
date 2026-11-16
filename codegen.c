@@ -104,7 +104,7 @@ void generate_idiv(char *var, char *symb1, char *symb2) {
 /**
  * @brief generates instruction PUSHS
  *
- * @param symb symbol to push onto the stack
+ * @param symb variable to push onto the stack
  * @return void
  */
 void generate_pushs(char *symb) {
@@ -114,7 +114,7 @@ void generate_pushs(char *symb) {
 /**
  * @brief generates instruction POPS
  *
- * @param var variable to pop from the stack
+ * @param var variable to save the popped value into
  * @return void
  */
 void generate_pops(char *var) {
@@ -131,136 +131,121 @@ void generate_clears() {
 }
 
 /**
- * @brief generates instruction ADDS
+ * @brief generates stack instruction ADDS
  *
- * @param var variable where the value will be saved into
- * @param symb1 first operand
- * @param symb2 second operand
  * @return void
  */
-void generate_adds(char *var, char *symb1, char *symb2) {
-          printf("ADDS %s %s %s\n", var, symb1, symb2);
+void generate_adds() {
+          printf("ADDS\n");
 }
 
 /**
- * @brief generates instruction SUBS
+ * @brief generates stack instruction SUBS
  *
- * @param var variable where the value will be saved into
- * @param symb1 first operand
- * @param symb2 second operand
  * @return void
  */
-void generate_subs(char *var, char *symb1, char *symb2) {
-          printf("SUBS %s %s %s\n", var, symb1, symb2);
+void generate_subs() {
+          printf("SUBS\n");
 }
 
 /**
- * @brief generates instruction MULS
+ * @brief generates stack instruction MULS
  *
- * @param var variable where the value will be saved into
- * @param symb1 first operand
- * @param symb2 second operand
  * @return void
  */
-void generate_muls(char *var, char *symb1, char *symb2) {
-          printf("MULS %s %s %s\n", var, symb1, symb2);
+void generate_muls() {
+          printf("MULS\n");
 }
 
 /**
- * @brief generates instruction DIVS
+ * @brief generates stack instruction DIVS
  *
- * @param var variable where the value will be saved into
- * @param symb1 first operand
- * @param symb2 second operand
  * @return void
  */
-void generate_divs(char *var, char *symb1, char *symb2) {
-          printf("DIVS %s %s %s\n", var, symb1, symb2);
+void generate_divs() {
+          printf("DIVS\n");
 }
 
 /**
- * @brief generates instruction IDIVS
+ * @brief generates stack instruction IDIVS
  *
- * @param var variable where the value will be saved into
- * @param symb1 first operand
- * @param symb2 second operand
  * @return void
  */
-void generate_idivs(char *var, char *symb1, char *symb2) {
-          printf("IDIVS %s %s %s\n", var, symb1, symb2);
+void generate_idivs() {
+          printf("IDIVS\n");
 }
 
 /**
- * @brief generates instruction LTS
+ * @brief generates stack instruction LTS
  *
- * @param var boolean variable where the result will be saved into
- * @param symb1 first variable to compare
- * @param symb2 second variable to compare
  * @return void
  */
-void generate_lts(char *var, char *symb1, char *symb2) {
-          printf("LTS %s %s %s\n", var, symb1, symb2);
+void generate_lts() {
+          printf("LTS\n");
 }
 
 /**
- * @brief generates instruction GTS
+ * @brief generates stack instruction GTS
  *
- * @param var boolean variable where the result will be saved into
- * @param symb1 first variable to compare
- * @param symb2 second variable to compare
  * @return void
  */
-void generate_gts(char *var, char *symb1, char *symb2) {
-          printf("GTS %s %s %s\n", var, symb1, symb2);
+void generate_gts() {
+          printf("GTS\n");
 }
 
 /**
- * @brief generates instruction EQS
+ * @brief generates stack instruction EQS
  *
- * @param var boolean variable where the result will be saved into
- * @param symb1 first variable to compare
- * @param symb2 second variable to compare
  * @return void
  */
-void generate_eqs(char *var, char *symb1, char *symb2) {
-          printf("EQS %s %s %s\n", var, symb1, symb2);
+void generate_eqs() {
+          printf("EQS\n");
 }
 
 /**
- * @brief generates instruction NOTS
+ * @brief generates stack instruction NOTS
  *
- * @param var boolean variable where the result will be saved into
- * @param symb1 variable to negate
  * @return void
  */
-void generate_nots(char *var, char *symb1) {
-          printf("NOTS %s %s\n", var, symb1);
+void generate_nots() {
+          printf("NOTS\n");
 }
 
 /**
- * @brief generates instruction INT2FLOATS
+ * @brief generates stack instruction INT2FLOATS
  *
- * @param var variable where the value will be saved into
- * @param symb variable to convert
  * @return void
  */
-void generate_int2floats(char *var, char *symb) {
-          printf("INT2FLOATS %s %s\n", var, symb);
+void generate_int2floats() {
+          printf("INT2FLOATS\n");
 }
 
 /**
  * @brief generates instruction CONCATS
  *
  * @param var variable where the concatenated string will be saved into
- * @param symb1 first string to concatenate
- * @param symb2 second string to concatenate
+ * @param tmp1 first string to concatenate
+ * @param tmp2 second string to concatenate
  * @return void
  */
-void generate_concats(char *var, char *symb1, char *symb2) {
-          printf("POPS GF@%%tmp1\n");
+void generate_concats() {
+          printf("DEFVAR GF@%%tmp1\n");
+          printf("DEFVAR GF@%%tmp2\n");
+
           printf("POPS GF@%%tmp2\n");
-          printf("CONCAT %s GF@%%tmp1 GF@%%tmp2\n", var );
-          printf("PUSHS %s\n", var);
+          printf("POPS GF@%%tmp1\n");
+          printf("CONCAT GF@%%tmp1 GF@%%tmp1 GF@%%tmp2\n");
+          printf("PUSHS GF@%%tmp1\n");
+}
+
+/**
+ * @brief generates instruction ASSIGN
+ *
+ * @param varName name of the variable to assign the value to
+ * @return void
+ */
+void generate_assign(const char *varName){
+          printf("POPS LF@%s\n", varName);
 }
 
 /**
