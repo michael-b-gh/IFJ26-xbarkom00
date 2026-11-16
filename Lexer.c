@@ -25,17 +25,6 @@ typedef enum {
   STATE_ID,
   STATE_DOUBLE,
   STATE_MUL_STR,
-  STATE_DO,
-  STATE_DEF,
-  STATE_ELSE,
-  STATE_IF,
-  STATE_IMPORT,
-  STATE_RETURN,
-  STATE_THEN,
-  STATE_UNIT,
-  STATE_VAL,
-  STATE_VAR,
-  STATE_WHILE,
   STATE_PLUS,
   STATE_MINUS,
   STATE_MUL,
@@ -48,10 +37,6 @@ typedef enum {
   STATE_NOT_EQ,
   STATE_NOT,
   STATE_ASSIGN,
-  STATE_IND,
-  STATE_DED,
-  STATE_EOL,
-  STATE_EOF,
   STATE_L_PARENTHESIS,
   STATE_R_PARENTHESIS,
   STATE_COMMA,
@@ -60,7 +45,6 @@ typedef enum {
   STATE_EXP_SIGN,
   STATE_EXP_NUM,
   STATE_EXP_NUM_NO_E,
-  STATE_INT_SIGN,
   STATE_ZERO,
   STATE_TWO_QUOTE,
   STATE_STRING_START,
@@ -431,7 +415,8 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           break;
-        } else if (symbol != ' ') {
+        } else {
+          lenght = 0;
           free(word);
           return LEX_ERR;
         }
