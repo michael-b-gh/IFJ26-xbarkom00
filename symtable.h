@@ -14,6 +14,7 @@
 
 typedef struct Symbol Symbol;
 typedef struct SymTable SymTable;
+typedef struct SymTableContext SymTableContext;
 
 /**
  * @brief Data type of symbol.
@@ -37,6 +38,15 @@ typedef enum {
 } SymbolKind;
 
 /**
+ * @brief State of return type inference of a function
+ */
+typedef enum {
+  INFER_UNVISITED = 0,   /**< Type wasn't inferred */
+  INFER_IN_PROGRESS = 1, /**< Type is being inferred */
+  INFER_RESOLVED = 2     /**< Type is known */
+} InferState;
+
+/**
  * @brief Symbol information
  */
 struct Symbol {
@@ -49,6 +59,11 @@ struct Symbol {
   SymbolKind kind;   /**< Kind of the symbol */
   DType type;        /**< Type of the symbol. */
   bool isMutable;    /**< Is true if value can be changed. (variable only) */
+  bool hasExplicitReturn; /**< True if the return type is given in the header.
+                             (function only) */
+  size_t bodyStartIdx; /**< Index in the token buffer where the function starts.
+                          (function only) */
+  InferState inferState; /**< State of return type inference. (function only)*/
 };
 
 /**
@@ -102,6 +117,8 @@ Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType type,
  * @param paramTypes Types of params, can be NULL if paramCount is 0.
  * @param returnType Return type of the function.
  * @param isMain Is true if this is @main function.
+ * @param hasExplicitReturn Is true if return type is in function header.
+ * @param bodyStartIdx Index in token buffer where function starts.
  *
  * @return Symbol If function is successfully inserted.
  *         NULL If function with the name already exists.
@@ -109,7 +126,8 @@ Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType type,
  */
 Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
                                size_t paramCount, const DType *paramTypes,
-                               DType returnType, bool isMain);
+                               DType returnType, bool isMain,
+                               bool hasExplicitReturn, size_t bodyStartIdx);
 
 /**
  * @brief Searches the symbol in all scopes (current to global), for item with
@@ -140,5 +158,23 @@ size_t symTableMainCount(const SymTable *symtable);
  * @param symtable Table to be freed.
  */
 void symTableFree(SymTable *symtable);
+
+/**
+ * @brief Saves local scopes, only the global scope stays visible.
+ *
+ * @param symtable Table whose local scopes are saved.
+ *
+ * @return Context with saved scopes. If allocation fails exits with INT_ERR.
+ */
+SymTableContext *symTableSaveContext(SymTable *symtable);
+
+/**
+ * @brief Restores saved scopes and frees the context. Only global scope must be
+ * open otherwise program exits with INT_ERR.
+ *
+ * @param symtable Table to restore the scopes into.
+ * @param context Context returned from symTableSaveContext
+ */
+void symTableRestoreContext(SymTable *symtable, SymTableContext *context);
 
 #endif
