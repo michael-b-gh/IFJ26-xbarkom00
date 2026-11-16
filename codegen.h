@@ -55,12 +55,14 @@ void generate_concats(char *var, char *symb1, char *symb2);
 
 void generate_readInt();
 
-void generate_print(char *value);
+void generate_print();
 
-void generate_subStr(char *value, char *start, char *end);
+void generate_subStr();
 
-void generate_ord(char *value, char *index);
+void generate_ord();
 
-void generate_chr(char *code);
+void generate_chr();
+
+void generate_buildins();
 
 #endif
