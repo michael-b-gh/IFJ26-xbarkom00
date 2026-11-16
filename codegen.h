@@ -31,27 +31,29 @@ void generate_pops(char *var);
 
 void generate_clears();
 
-void generate_adds(char *var, char *symb1, char *symb2);
+void generate_adds();
 
-void generate_subs(char *var, char *symb1, char *symb2);
+void generate_subs();
 
-void generate_muls(char *var, char *symb1, char *symb2);
+void generate_muls();
 
-void generate_divs(char *var, char *symb1, char *symb2);
+void generate_divs();
 
-void generate_idivs(char *var, char *symb1, char *symb2);
+void generate_idivs();
 
-void generate_lts(char *var, char *symb1, char *symb2);
+void generate_lts();
 
-void generate_gts(char *var, char *symb1, char *symb2);
+void generate_gts();
 
-void generate_eqs(char *var, char *symb1, char *symb2);
+void generate_eqs();
 
-void generate_nots(char *var, char *symb1);
+void generate_nots();
 
-void generate_int2floats(char *var, char *symb);
+void generate_int2floats();
 
-void generate_concats(char *var, char *symb1, char *symb2);
+void generate_concats();
+
+void generate_assign(const char *varName);
 
 void generate_readInt();
 
