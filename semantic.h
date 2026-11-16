@@ -132,4 +132,33 @@ int check_function_call(SymTable *symtable, const char *funcName,
  * SUCCESS If number of main functions is exactly 1.
  */
 int check_main_exists(SymTable *symtable);
+
+/**
+ * @brief Checks a return statement against the function's return type.
+ *
+ * @param func Function that has return.
+ * @param hasExpr True if return has an expression.
+ * @param exprType Type of expression used only if hasExpr.
+ *
+ * @return TYPE_INC_SEM_ERR Function has no explicit return type, or bare
+ * return in function that is not UNIT or type of expression is not compatible.
+ * SUCCESS If return is allowed.
+ */
+int check_return_stmt(const Symbol *func, bool hasExpr, DType exprType);
+
+/**
+ * @brief Checks result of function body. If the function has no explicit return
+ * type, sets func->returnType.
+ *
+ * @param func Function whose body is verified.
+ * @param lastStmtType Type of last statement in body.
+ * @param allPathsReturned True if all paths end with return
+ *
+ * @return TYPE_INC_SEM_ERR If result is not compatible with type of function or
+ * type can't be inferred.
+ * SUCCESS If the result is valid.
+ */
+int check_function_body_end(Symbol *func, DType lastStmtType,
+                            bool allPathsReturned);
+
 #endif // SEMANTIC_H

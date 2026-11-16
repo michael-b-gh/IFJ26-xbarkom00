@@ -173,3 +173,52 @@ int check_main_exists(SymTable *symtable) {
     return REDEF_SEM_ERR;
   return SUCCESS;
 }
+
+int check_return_stmt(const Symbol *func, bool hasExpr, DType exprType) {
+  if (!func->hasExplicitReturn)
+    return TYPE_INC_SEM_ERR;
+  if (!hasExpr) {
+    if (func->returnType == DTYPE_UNIT) {
+      return SUCCESS;
+    } else {
+      return TYPE_INC_SEM_ERR;
+    }
+  }
+  if (exprType == DTYPE_UNKNOWN || exprType == DTYPE_BOOLEAN)
+    return TYPE_INC_SEM_ERR;
+  if (func->returnType == DTYPE_UNIT)
+    return SUCCESS;
+  if (is_type_compatible(func->returnType, exprType)) {
+    return SUCCESS;
+  } else {
+    return TYPE_INC_SEM_ERR;
+  }
+}
+
+int check_function_body_end(Symbol *func, DType lastStmtType,
+                            bool allPathsReturned) {
+  if (allPathsReturned)
+    return SUCCESS;
+  if (func->hasExplicitReturn) {
+    if (func->returnType == DTYPE_UNIT) {
+      if (lastStmtType == DTYPE_UNKNOWN || lastStmtType == DTYPE_BOOLEAN) {
+        return TYPE_INC_SEM_ERR;
+      } else {
+        return SUCCESS;
+      }
+    } else {
+      if (is_type_compatible(func->returnType, lastStmtType)) {
+        return SUCCESS;
+      } else {
+        return TYPE_INC_SEM_ERR;
+      }
+    }
+  } else {
+    if (lastStmtType == DTYPE_UNKNOWN || lastStmtType == DTYPE_BOOLEAN) {
+      return TYPE_INC_SEM_ERR;
+    } else {
+      func->returnType = lastStmtType;
+      return SUCCESS;
+    }
+  }
+}
