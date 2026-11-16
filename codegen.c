@@ -266,7 +266,7 @@ void generate_concats(char *var, char *symb1, char *symb2) {
 /**
  * @brief generates built-in function readInt(): Int
  *
- * @param LF@%var variable where the value will be saved into
+ * @param var variable where the value will be saved into
  * @return void
  */
 void generate_readInt() {
@@ -275,23 +275,32 @@ void generate_readInt() {
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%var\n");
           printf("READ LF@%%var int\n");
+
+          printf("PUSHS LF@%%var\n");
+
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
+
 /**
  * @brief generates built-in function print(value: Any): Unit
  *
  * @param  value value to print
  * @return void
  */
-void generate_print(char *value) {
+void generate_print() {
           printf("LABEL $print\n");
           printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
-          printf("WRITE %s\n", value);
+
+          printf("DEFVAR LF@%%value\n");
+          printf("POPS LF@%%value\n");
+          printf("WRITE LF@%%value\n");
+
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
+
 /**
  * @brief generates built-in function subStr(value: String, start: Int, end: Int): String
  *
@@ -304,7 +313,7 @@ void generate_print(char *value) {
  * @param length variable to store the length of the string
  * @return void
  */
-void generate_subStr(char *value, char *start, char *end) {
+void generate_subStr() {
           printf("LABEL $subStr\n");
           printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
@@ -313,9 +322,10 @@ void generate_subStr(char *value, char *start, char *end) {
           printf("DEFVAR LF@%%end\n");
           printf("DEFVAR LF@%%char\n");
           printf("DEFVAR LF@%%substring\n");
-          printf("MOVE LF@%%value %s\n", value);
-          printf("MOVE LF@%%start %s\n", start);
-          printf("MOVE LF@%%end %s\n", end);
+
+          printf("POPS LF@%%end\n");
+          printf("POPS LF@%%start\n");
+          printf("POPS LF@%%value\n");
 
           printf("DEFVAR LF@%%p\n");
           printf("MOVE LF@%%p bool@false\n");
@@ -335,12 +345,16 @@ void generate_subStr(char *value, char *start, char *end) {
           printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n");
           printf("ADD LF@%%start LF@%%start int@1\n");
           printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n");
+
+          printf("PUSHS LF@%%substring\n");
+
           printf("POPFRAME\n");
           printf("RETURN\n");
 
           printf("LABEL $subStr_error\n");
           printf("EXIT int@40\n");
 }
+
 /**
  * @brief generates built-in function ord(value: String, index: Int): Int
  *
@@ -351,7 +365,7 @@ void generate_subStr(char *value, char *start, char *end) {
  * @param p variable to check if the conditions for the error are met
  * @return void
  */
-void generate_ord(char *value, char *index) {
+void generate_ord() {
           printf("LABEL $ord\n");
           printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
@@ -360,8 +374,10 @@ void generate_ord(char *value, char *index) {
           printf("DEFVAR LF@%%char\n");
           printf("DEFVAR LF@%%length\n");
           printf("DEFVAR LF@%%p\n");
-          printf("MOVE LF@%%value %s\n", value);
-          printf("MOVE LF@%%index %s\n", index);
+          
+          printf("POPS LF@%%index\n");
+          printf("POPS LF@%%value\n");
+
           printf("STRLEN LF@%%length LF@%%value\n");
 
           printf("EQ LF@%%p LF@%%length int@0\n");
@@ -371,12 +387,16 @@ void generate_ord(char *value, char *index) {
           printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
 
           printf("STRI2INT LF@%%char LF@%%value LF@%%index\n");
+
+          printf("PUSHS LF@%%char\n");
+
           printf("POPFRAME\n");
           printf("RETURN\n");
 
           printf("LABEL $ord_error\n");
           printf("EXIT int@-1\n");
 }
+
 /**
  * @brief generates built-in function chr(code: Int): String
  *
@@ -384,12 +404,31 @@ void generate_ord(char *value, char *index) {
  * @param char variable to store the created character
  * @return void
  */
-void generate_chr(char *code) {
+void generate_chr() {
           printf("LABEL $chr\n");
           printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%char\n");
-          printf("INT2STR LF@%%char %s\n", code);
+          printf("DEFVAR LF@%%code\n");
+
+          printf("POPS LF@%%code\n");
+
+          printf("INT2CHAR LF@%%char LF@%%code\n");
+
+          printf("PUSHS LF@%%char\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
+}
+
+/**
+ * @brief generates all built-in functions
+ *
+ * @return void
+ */
+void generate_buildins() {
+    generate_readInt();
+    generate_print();
+    generate_subStr();
+    generate_ord();
+    generate_chr();
 }
