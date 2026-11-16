@@ -101,6 +101,167 @@ void generate_idiv(char *var, char *symb1, char *symb2) {
           printf("IDIV %s %s %s\n", var, symb1, symb2);
 }
 
+/**
+ * @brief generates instruction PUSHS
+ *
+ * @param symb symbol to push onto the stack
+ * @return void
+ */
+void generate_pushs(char *symb) {
+          printf("PUSHS %s\n", symb);
+}
+
+/**
+ * @brief generates instruction POPS
+ *
+ * @param var variable to pop from the stack
+ * @return void
+ */
+void generate_pops(char *var) {
+          printf("POPS %s\n", var);
+}
+
+/**
+ * @brief generates instruction CLEARS
+ *
+ * @return void
+ */
+void generate_clears() {
+          printf("CLEARS\n");
+}
+
+/**
+ * @brief generates instruction ADDS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb1 first operand
+ * @param symb2 second operand
+ * @return void
+ */
+void generate_adds(char *var, char *symb1, char *symb2) {
+          printf("ADDS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction SUBS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb1 first operand
+ * @param symb2 second operand
+ * @return void
+ */
+void generate_subs(char *var, char *symb1, char *symb2) {
+          printf("SUBS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction MULS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb1 first operand
+ * @param symb2 second operand
+ * @return void
+ */
+void generate_muls(char *var, char *symb1, char *symb2) {
+          printf("MULS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction DIVS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb1 first operand
+ * @param symb2 second operand
+ * @return void
+ */
+void generate_divs(char *var, char *symb1, char *symb2) {
+          printf("DIVS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction IDIVS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb1 first operand
+ * @param symb2 second operand
+ * @return void
+ */
+void generate_idivs(char *var, char *symb1, char *symb2) {
+          printf("IDIVS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction LTS
+ *
+ * @param var boolean variable where the result will be saved into
+ * @param symb1 first variable to compare
+ * @param symb2 second variable to compare
+ * @return void
+ */
+void generate_lts(char *var, char *symb1, char *symb2) {
+          printf("LTS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction GTS
+ *
+ * @param var boolean variable where the result will be saved into
+ * @param symb1 first variable to compare
+ * @param symb2 second variable to compare
+ * @return void
+ */
+void generate_gts(char *var, char *symb1, char *symb2) {
+          printf("GTS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction EQS
+ *
+ * @param var boolean variable where the result will be saved into
+ * @param symb1 first variable to compare
+ * @param symb2 second variable to compare
+ * @return void
+ */
+void generate_eqs(char *var, char *symb1, char *symb2) {
+          printf("EQS %s %s %s\n", var, symb1, symb2);
+}
+
+/**
+ * @brief generates instruction NOTS
+ *
+ * @param var boolean variable where the result will be saved into
+ * @param symb1 variable to negate
+ * @return void
+ */
+void generate_nots(char *var, char *symb1) {
+          printf("NOTS %s %s\n", var, symb1);
+}
+
+/**
+ * @brief generates instruction INT2FLOATS
+ *
+ * @param var variable where the value will be saved into
+ * @param symb variable to convert
+ * @return void
+ */
+void generate_int2floats(char *var, char *symb) {
+          printf("INT2FLOATS %s %s\n", var, symb);
+}
+
+/**
+ * @brief generates instruction CONCATS
+ *
+ * @param var variable where the concatenated string will be saved into
+ * @param symb1 first string to concatenate
+ * @param symb2 second string to concatenate
+ * @return void
+ */
+void generate_concats(char *var, char *symb1, char *symb2) {
+          printf("POPS GF@%%tmp1\n");
+          printf("POPS GF@%%tmp2\n");
+          printf("CONCAT %s GF@%%tmp1 GF@%%tmp2\n", var );
+          printf("PUSHS %s\n", var);
+}
 
 /**
  * @brief generates built-in function readInt(): Int
