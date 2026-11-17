@@ -7,56 +7,78 @@
  * @author Mykhailo Barkovskyi (xbarkom00)
  */
 
-#include <stdio.h>
-
-// Stores the current token to allow multiple checks without advancing the tape
-// head
 #include "error.h"
+#include "expression.h"
 #include "scanner.h"
+#include "semantic.h"
+#include "symtable.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int consume_token(token *current_token);
-int parse_start(token *current_token);
-int parse_prolog(token *current_token);
-int parse_variable(token *current_token);
-int parse_function(token *current_token);
-int parse_if(token *current_token);
-int parse_while(token *current_token);
-int parse_type(token *current_token);
-int parse_param(token *current_token);
-int parse_block(token *current_token);
-// TODO: int parse_return(token *current_token);
+token_t peek_type(const TokenBuffer *buf, size_t *idx);
+int parse_start(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_prolog(const TokenBuffer *buf, size_t *idx);
+int parse_main(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_variable(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_function(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_if(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_while(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type);
+int parse_param(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_block(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_return(const TokenBuffer *buf, size_t *idx, SymTable *st);
+int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, SymTable *st,
+                       DType *data_type);
+int parse_func_call(const TokenBuffer *buf, size_t *idx, SymTable *st);
 
-int consume_token(token *current_token) {
-  if (current_token->attribute != NULL) {
-    free(current_token->attribute);
-    current_token->attribute = NULL;
-  }
+/**
+ * @brief Peeks at the type of next token
+ *
+ * @param buf Buffer to read from
+ * @param idx Index of the current token
+ *
+ * @return Token type
+ */
+token_t peek_type(const TokenBuffer *buf, size_t *idx) {
+  token *next_tok = tokenBufferGet(buf, *idx + 1);
 
-  return get_next_token(current_token);
+  if (next_tok == NULL)
+    return TOKEN_EOF;
+  else
+    return next_tok->token_type;
 }
 
-// Top-level driver for recursive descent parsing
-int parse_start(token *current_token) {
-  if (parse_prolog(current_token) == SYN_ERR)
-    return SYN_ERR;
+/**
+ * @brief Top-level driver for recursive descent parsing
+ *
+ * @param buf Buffer to read from
+ * @param idx Index of the current token
+ * @param st
+ *
+ * @return Return code (SUCCESS/Type of error)
+ */
+int parse_start(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  int res;
+  res = parse_prolog(buf, idx);
+  if (res != SUCCESS)
+    return res;
 
-  while (current_token->token_type != TOKEN_EOF) {
-    if (current_token->token_type == TOKEN_VAR ||
-        current_token->token_type == TOKEN_VAL) {
-      if (parse_variable(current_token) == SYN_ERR)
-        return SYN_ERR;
+  while (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOF) {
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL)
+      (*idx)++;
 
-    } else if (current_token->token_type == TOKEN_DEF) {
-      if (parse_function(current_token) == SYN_ERR)
-        return SYN_ERR;
+    else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_DEF) {
+      res = parse_function(buf, idx, st);
+      if (res != SUCCESS)
+        return res;
+    }
 
-    } else if (current_token->token_type == TOKEN_IF) {
-      if (parse_if(current_token) == SYN_ERR)
-        return SYN_ERR;
-
-    } else if (current_token->token_type == TOKEN_WHILE) {
-      if (parse_while(current_token) == SYN_ERR)
-        return SYN_ERR;
+    else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_MAIN) {
+      res = parse_main(buf, idx, st);
+      if (res != SUCCESS)
+        return res;
     } else
       return SYN_ERR;
   }
@@ -65,171 +87,253 @@ int parse_start(token *current_token) {
 }
 
 // Verifies grammatical correctness of the prolog
-int parse_prolog(token *current_token) {
-  if (current_token->token_type == TOKEN_PROLOG) {
-    consume_token(current_token);
+int parse_prolog(const TokenBuffer *buf, size_t *idx) {
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_IMPORT)
+    return SYN_ERR;
 
-    if (current_token->token_type == TOKEN_EOL) {
-      consume_token(current_token);
-      return SUCCESS;
-    }
-  }
+  (*idx)++;
 
-  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ID ||
+      tokenBufferGet(buf, *idx)->attribute == NULL ||
+      strcmp(tokenBufferGet(buf, *idx)->attribute, "ifj26") != 0)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_DOT)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_MUL)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    return SYN_ERR;
+
+  (*idx)++;
+  return SUCCESS;
+}
+
+// Verifies grammatical correctness of the main
+int parse_main(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  (*idx)++;
+
+  while (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL)
+    (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_DEF)
+    return SYN_ERR;
+
+  return parse_function(buf, idx, st);
 }
 
 // Verifies grammatical correctness of the variable definition
-int parse_variable(token *current_token) {
-  consume_token(current_token);
+int parse_variable(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  int res;
+  bool mut = (tokenBufferGet(buf, *idx)->token_type == TOKEN_VAR);
+  DType init_type = DTYPE_UNKNOWN;
+  DType annot_type = DTYPE_UNKNOWN;
 
-  if (current_token->token_type == TOKEN_ID) {
-    consume_token(current_token);
+  (*idx)++;
 
-    if (current_token->token_type == TOKEN_COLON) {
-      consume_token(current_token);
-      if (parse_type(current_token) == SYN_ERR)
-        return SYN_ERR;
-    }
+  char *name = tokenBufferGet(buf, *idx)->attribute;
 
-    if (current_token->token_type == TOKEN_ASSIGN) {
-      // TODO: Check for expression or function call
-      consume_token(current_token);
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ID)
+    return SYN_ERR;
 
-      if (current_token->token_type == TOKEN_EOL) {
-        consume_token(current_token);
-        return SUCCESS;
-      }
-    } else
-      return SYN_ERR;
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COLON) {
+    (*idx)++;
+
+    res = parse_type(buf, idx, &annot_type);
+    if (res != SUCCESS)
+      return res;
   }
 
-  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ASSIGN)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  res = parse_expr_or_call(buf, idx, st, &init_type);
+
+  if (res != SUCCESS)
+    return res;
+
+  if (init_type == DTYPE_BOOLEAN)
+    return TYPE_INC_SEM_ERR;
+
+  res = check_variable_def(st, name, annot_type, init_type, mut);
+  if (res != SUCCESS)
+    return res;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    return SYN_ERR;
+
+  (*idx)++;
+  return SUCCESS;
 }
 
 // Verifies grammatical correctness of the function definition
-int parse_function(token *current_token) {
-  consume_token(current_token);
+int parse_function(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  int res;
+  (*idx)++;
 
-  if (current_token->token_type == TOKEN_ID) {
-    consume_token(current_token);
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ID)
+    return SYN_ERR;
 
-    if (current_token->token_type == TOKEN_L_PARENTHESIS) {
-      consume_token(current_token);
-      if (parse_param(current_token) == SYN_ERR)
-        return SYN_ERR;
+  (*idx)++;
 
-    } else if (current_token->token_type == TOKEN_COLON) {
-      if (parse_type(current_token) == SYN_ERR)
-        return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_L_PARENTHESIS)
+    return SYN_ERR;
 
-      consume_token(current_token);
+  (*idx)++;
 
-    } else if (current_token->token_type == TOKEN_ASSIGN) {
-      consume_token(current_token);
+  res = parse_param(buf, idx, st);
+  if (res != SUCCESS)
+    return res;
 
-      if (current_token->token_type == TOKEN_EOL) {
-        consume_token(current_token);
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COLON) {
+    (*idx)++;
 
-        if (current_token->token_type == TOKEN_IND) {
-          if (parse_block(current_token) == SYN_ERR)
-            return SYN_ERR;
-          consume_token(current_token);
-
-          if (current_token->token_type == TOKEN_DED) {
-            consume_token(current_token);
-            return SUCCESS;
-          }
-        }
-      }
-    } else
-      return SYN_ERR;
+    res = parse_type(buf, idx, NULL);
+    if (res != SUCCESS)
+      return res;
   }
 
-  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ASSIGN)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL) {
+    (*idx)++;
+
+    res = parse_block(buf, idx, st);
+    if (res != SUCCESS)
+      return res;
+  } else {
+    res = parse_expr_or_call(buf, idx, st, NULL);
+    if (res != SUCCESS)
+      return res;
+
+    if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+      return SYN_ERR;
+
+    (*idx)++;
+  }
+
+  return SUCCESS;
 }
 
 // Verifies grammatical correctness of an if-statement
-int parse_if(token *current_token) {
-  consume_token(current_token);
-  // TODO: Check for condition
+int parse_if(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  DType cond_type = DTYPE_UNKNOWN;
+  int res;
+  (*idx)++;
 
-  if (current_token->token_type == TOKEN_THEN) {
-    consume_token(current_token);
+  // Check for condition
+  res = parse_expression(buf, idx, st, &cond_type);
+  if (res != SUCCESS)
+    return res;
 
-    if (current_token->token_type == TOKEN_EOL) {
-      consume_token(current_token);
+  if (cond_type != DTYPE_BOOLEAN)
+    return TYPE_INC_SEM_ERR;
 
-      if (current_token->token_type == TOKEN_IND) {
-        consume_token(current_token);
-        if (parse_block(current_token) == SYN_ERR)
-          return SYN_ERR;
-        if (current_token->token_type == TOKEN_DED) {
-          consume_token(current_token);
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_THEN)
+    return SYN_ERR;
 
-          if (current_token->token_type == TOKEN_ELSE) {
-            consume_token(current_token);
-            if (current_token->token_type == TOKEN_EOL) {
-              consume_token(current_token);
+  (*idx)++;
 
-              if (current_token->token_type == TOKEN_IND) {
-                consume_token(current_token);
-                if (parse_block(current_token) == SYN_ERR)
-                  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    return SYN_ERR;
 
-                if (current_token->token_type == TOKEN_DED) {
-                  consume_token(current_token);
-                  return SUCCESS;
-                }
-              }
-            }
-          }
-        }
-      }
+  (*idx)++;
 
-    } else
-      return SYN_ERR;
-  }
+  res = parse_block(buf, idx, st);
+  if (res != SUCCESS)
+    return res;
 
-  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ELSE)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  res = parse_block(buf, idx, st);
+  if (res != SUCCESS)
+    return res;
+
+  return SUCCESS;
 }
 
 // Verifies grammatical correctness of a while-loop
-int parse_while(token *current_token) {
-  consume_token(current_token);
+int parse_while(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  DType cond_type = DTYPE_UNKNOWN;
+  int res;
+  (*idx)++;
 
-  if (current_token->token_type == TOKEN_DO) {
-    // TODO: Check for condition
-    consume_token(current_token);
+  // Check for condition
+  res = parse_expression(buf, idx, st, &cond_type);
+  if (res != SUCCESS)
+    return res;
 
-    if (current_token->token_type == TOKEN_EOL) {
-      consume_token(current_token);
+  if (cond_type != DTYPE_BOOLEAN)
+    return TYPE_INC_SEM_ERR;
 
-      if (current_token->token_type == TOKEN_IND) {
-        if (parse_block(current_token) == SYN_ERR)
-          return SYN_ERR;
-        consume_token(current_token);
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_DO)
+    return SYN_ERR;
 
-        if (current_token->token_type == TOKEN_DED) {
-          consume_token(current_token);
-          return SUCCESS;
-        } else
-          return SYN_ERR;
-      } else
-        return SYN_ERR;
-    }
-  }
+  (*idx)++;
 
-  return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    return SYN_ERR;
+
+  (*idx)++;
+
+  res = parse_block(buf, idx, st);
+  if (res != SUCCESS)
+    return res;
+
+  return SUCCESS;
 }
 
 // Verifies data type annotations
-int parse_type(token *current_token) {
-  if (current_token->token_type == TOKEN_INT ||
-      current_token->token_type == TOKEN_DOUBLE ||
-      current_token->token_type == TOKEN_STRING ||
-      current_token->token_type == TOKEN_UNIT) {
+int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type) {
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_INT ||
+      tokenBufferGet(buf, *idx)->token_type == TOKEN_DOUBLE ||
+      tokenBufferGet(buf, *idx)->token_type == TOKEN_STRING ||
+      tokenBufferGet(buf, *idx)->token_type == TOKEN_UNIT) {
 
-    consume_token(current_token);
+    if (data_type != NULL) {
+      switch (tokenBufferGet(buf, *idx)->token_type) {
+      case TOKEN_INT:
+        *data_type = DTYPE_INT;
+        break;
+      case TOKEN_DOUBLE:
+        *data_type = DTYPE_DOUBLE;
+        break;
+      case TOKEN_STRING:
+        *data_type = DTYPE_STRING;
+        break;
+      case TOKEN_UNIT:
+        *data_type = DTYPE_UNIT;
+        break;
+
+      default:
+        return SYN_ERR;
+      }
+    }
+
+    (*idx)++;
 
     return SUCCESS;
   }
@@ -238,83 +342,204 @@ int parse_type(token *current_token) {
 }
 
 // Verifies function parameter definitions
-int parse_param(token *current_token) {
-  if (current_token->token_type == TOKEN_R_PARENTHESIS) {
-    consume_token(current_token);
+int parse_param(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  (void)st;
+  int res;
+
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
+    (*idx)++;
     return SUCCESS;
   }
 
-  while (current_token->token_type != TOKEN_R_PARENTHESIS) {
-    if (current_token->token_type == TOKEN_ID)
-      consume_token(current_token);
+  while (tokenBufferGet(buf, *idx)->token_type != TOKEN_R_PARENTHESIS) {
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID)
+      (*idx)++;
     else
       return SYN_ERR;
 
-    if (current_token->token_type == TOKEN_COLON)
-      consume_token(current_token);
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COLON)
+      (*idx)++;
     else
       return SYN_ERR;
 
-    if (parse_type(current_token) == SYN_ERR)
-      return SYN_ERR;
+    res = parse_type(buf, idx, NULL);
+    if (res != SUCCESS)
+      return res;
 
-    if (current_token->token_type == TOKEN_COMMA)
-      consume_token(current_token);
-    else if (current_token->token_type == TOKEN_R_PARENTHESIS) {
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COMMA)
+      (*idx)++;
+    else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
       // Parser hit ")": termination of the loop
     } else
       return SYN_ERR;
   }
-  consume_token(current_token);
+  (*idx)++;
   return SUCCESS;
 }
 
-// Verifies block statements
-int parse_block(token *current_token) {
-  consume_token(current_token);
+// Verifies block statements and literals
+int parse_block(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  int res;
 
-  while (current_token->token_type != TOKEN_DED) {
-    if (current_token->token_type == TOKEN_VAR ||
-        current_token->token_type == TOKEN_VAL) {
-      if (parse_variable(current_token) == SYN_ERR)
-        return SYN_ERR;
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IND) {
 
-    } else if (current_token->token_type == TOKEN_DEF) {
-      if (parse_function(current_token) == SYN_ERR)
-        return SYN_ERR;
+    symTablePushScope(st);
 
-    } else if (current_token->token_type == TOKEN_IF) {
-      if (parse_if(current_token) == SYN_ERR)
-        return SYN_ERR;
+    (*idx)++;
 
-    } else if (current_token->token_type == TOKEN_WHILE) {
-      if (parse_while(current_token) == SYN_ERR)
-        return SYN_ERR;
+    while (tokenBufferGet(buf, *idx)->token_type != TOKEN_DED) {
+      if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL)
+        (*idx)++;
 
-    } else if (current_token->token_type == TOKEN_RETURN) {
-      // TODO: implement parse_return();
-      // if (parse_return(current_token) == SYN_ERR)
-      //    return SYN_ERR;
+      else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_VAR ||
+               tokenBufferGet(buf, *idx)->token_type == TOKEN_VAL) {
+        res = parse_variable(buf, idx, st);
+        if (res != SUCCESS)
+          return res;
 
-    } else if (current_token->token_type == TOKEN_ID) {
-      // TODO: differentiate between variable reassignment and function call
+      } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IF) {
+        res = parse_if(buf, idx, st);
+        if (res != SUCCESS)
+          return res;
+
+      } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_WHILE) {
+        res = parse_while(buf, idx, st);
+        if (res != SUCCESS)
+          return res;
+
+      } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_RETURN) {
+        res = parse_return(buf, idx, st);
+        if (res != SUCCESS)
+          return res;
+
+      } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID &&
+                 peek_type(buf, idx) == TOKEN_ASSIGN) {
+        char *name = tokenBufferGet(buf, *idx)->attribute;
+        DType rhs_type = DTYPE_UNKNOWN;
+        (*idx)++;
+        (*idx)++;
+
+        res = parse_expr_or_call(buf, idx, st, &rhs_type);
+        if (res != SUCCESS)
+          return res;
+
+        if (rhs_type == DTYPE_BOOLEAN)
+          return TYPE_INC_SEM_ERR;
+
+        res = check_assignment(st, name, rhs_type);
+        if (res != SUCCESS)
+          return res;
+
+        if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+          return SYN_ERR;
+
+        (*idx)++;
+      } else {
+        res = parse_expr_or_call(buf, idx, st, NULL);
+        if (res != SUCCESS)
+          return res;
+
+        if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+          return SYN_ERR;
+
+        (*idx)++;
+      }
+    }
+    symTablePopScope(st);
+  } else
+    return SYN_ERR;
+
+  (*idx)++;
+  return SUCCESS;
+}
+
+// Verifies return
+int parse_return(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL) {
+    (*idx)++;
+    return SUCCESS;
+  } else {
+    int res = parse_expr_or_call(buf, idx, st, NULL);
+    if (res != SUCCESS)
+      return res;
+
+    if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+      return SYN_ERR;
+
+    (*idx)++;
+
+    return SUCCESS;
+  }
+}
+
+// Parses an expression or a function call
+int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, SymTable *st,
+                       DType *data_type) {
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID &&
+      peek_type(buf, idx) == TOKEN_L_PARENTHESIS) {
+    if (data_type != NULL)
+      *data_type = DTYPE_UNIT;
+
+    return parse_func_call(buf, idx, st);
+  } else
+    return parse_expression(buf, idx, st, data_type);
+}
+
+// Verifies function call
+int parse_func_call(const TokenBuffer *buf, size_t *idx, SymTable *st) {
+  (void)st;
+  (*idx)++;
+  (*idx)++;
+
+  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
+    (*idx)++;
+    return SUCCESS;
+  }
+
+  while (tokenBufferGet(buf, *idx)->token_type != TOKEN_R_PARENTHESIS) {
+    if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ID &&
+        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_INT &&
+        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_DOUBLE &&
+        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_STRING &&
+        tokenBufferGet(buf, *idx)->token_type != TOKEN_UNIT)
+      return SYN_ERR;
+
+    (*idx)++;
+
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COMMA)
+      (*idx)++;
+    else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
+      // Parser hit ")": termination of the loop
     } else
       return SYN_ERR;
   }
 
-  consume_token(current_token);
+  (*idx)++;
   return SUCCESS;
 }
 
-// @brief Main entry point; initializes the token stream and begins recursive
-// descent parsing
+// @brief Main entry point; initializes the token stream and begins
+// recursive descent parsing
 int main() {
-  token current_token;
-  current_token.attribute = NULL;
-  consume_token(&current_token);
+  TokenBuffer *buf = tokenBufferCreate();
 
-  if (parse_start(&current_token) == SUCCESS)
-    return SUCCESS;
-  else
-    return SYN_ERR;
+  int res;
+
+  res = tokenBufferLoad(buf);
+  if (res != SUCCESS) {
+    tokenBufferFree(buf);
+    return res;
+  }
+
+  size_t idx = 0;
+
+  SymTable *st = symTableCreate();
+
+  res = parse_start(buf, &idx, st);
+  tokenBufferFree(buf);
+  symTableFree(st);
+
+  return res;
 }

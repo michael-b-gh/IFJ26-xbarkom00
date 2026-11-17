@@ -9,13 +9,13 @@
 #include "expression.h"
 #include "error.h"
 #include "semantic.h"
+#include "token_buffer.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TABLE_SIZE 8
+#define TABLE_SIZE 9
 
-int consume_token(token *current_token);
-prec_idx_t get_index(token_t token_type);
+prec_idx_t get_index(token_t token_type, stack_item_t *top);
 int stack_push(stack_item_t **top, stack_item_type_t type, token_t tok_type,
                prec_idx_t idx, DType dtype);
 void stack_pop(stack_item_t **top);
@@ -23,20 +23,31 @@ void stack_free_all(stack_item_t **top);
 stack_item_t *find_top_terminal(stack_item_t *top);
 int insert_marker(stack_item_t **top);
 int reduce(stack_item_t **top);
-int parse_expression(token *current_token);
+int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
+                     DType *data_type);
 
 prec_sign_t prec_table[TABLE_SIZE][TABLE_SIZE] = {
-    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_RE},
-    {PREC_SH, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_RE},
-    {PREC_SH, PREC_SH, PREC_ERR, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_RE},
-    {PREC_SH, PREC_SH, PREC_SH, PREC_ERR, PREC_SH, PREC_RE, PREC_SH, PREC_RE},
-    {PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_EQ, PREC_SH, PREC_ERR},
-    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_ERR, PREC_RE, PREC_ERR, PREC_RE},
-    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_ERR, PREC_RE, PREC_ERR, PREC_RE},
-    {PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_ERR, PREC_SH, PREC_ERR}};
+    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
+     PREC_RE},
+    {PREC_SH, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
+     PREC_RE},
+    {PREC_SH, PREC_SH, PREC_ERR, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
+     PREC_RE},
+    {PREC_SH, PREC_SH, PREC_SH, PREC_ERR, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
+     PREC_RE},
+    {PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_EQ, PREC_SH, PREC_SH,
+     PREC_ERR},
+    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_ERR, PREC_RE, PREC_ERR, PREC_ERR,
+     PREC_RE},
+    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_ERR, PREC_RE, PREC_ERR, PREC_ERR,
+     PREC_RE},
+    {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
+     PREC_RE},
+    {PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_SH, PREC_ERR, PREC_SH, PREC_SH,
+     PREC_ERR}};
 
 // Maps a lexer token to its corresponding precedence table index
-prec_idx_t get_index(token_t token_type) {
+prec_idx_t get_index(token_t token_type, stack_item_t *top) {
   switch (token_type) {
   case TOKEN_MUL:
   case TOKEN_DIV:
@@ -44,7 +55,11 @@ prec_idx_t get_index(token_t token_type) {
 
   case TOKEN_PLUS:
   case TOKEN_MINUS:
-    return IDX_ADD_SUB;
+    if (top != NULL && (top->type == ITEM_NT_E || top->idx == IDX_OPD ||
+                        top->idx == IDX_R_PAR))
+      return IDX_ADD_SUB;
+    else
+      return IDX_UNARY;
 
   case TOKEN_LESS_THAN:
   case TOKEN_LESS_THAN_EQ:
@@ -66,7 +81,6 @@ prec_idx_t get_index(token_t token_type) {
   case TOKEN_LIT_INT:
   case TOKEN_LIT_DOUBLE:
   case TOKEN_LIT_STRING:
-  case TOKEN_UNIT:
     return IDX_OPD;
 
   default:
@@ -168,6 +182,18 @@ int reduce(stack_item_t **top) {
       return SYN_ERR;
 
     result_type = (*top)->data_type;
+  } else if (cnt == 2) {
+    stack_item_t *node_1st = *top;
+    stack_item_t *node_2nd = node_1st->next;
+
+    if (node_1st->idx == IDX_R_PAR && node_2nd->idx == IDX_L_PAR)
+      result_type = DTYPE_UNIT;
+    else if (node_2nd->idx == IDX_UNARY && node_1st->type == ITEM_NT_E) {
+      result_type = check_unary_op(node_1st->data_type, node_2nd->token_type);
+      if (result_type == DTYPE_UNKNOWN)
+        return TYPE_INC_SEM_ERR;
+    } else
+      return SYN_ERR;
   } else if (cnt == 3) {
     stack_item_t *node_1st = *top;
     stack_item_t *node_2nd = node_1st->next;
@@ -195,16 +221,21 @@ int reduce(stack_item_t **top) {
 }
 
 // Parses and type-checks an expression using operator-precedence parsing
-int parse_expression(token *current_token) {
+int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
+                     DType *data_type) {
   stack_item_t *top = NULL;
   stack_push(&top, ITEM_TOKEN, 0, IDX_END, DTYPE_UNKNOWN);
 
   while (1) {
+    token *current_token = tokenBufferGet(buf, *idx);
     stack_item_t *top_term = find_top_terminal(top);
-    prec_idx_t input_idx = get_index(current_token->token_type);
+    prec_idx_t input_idx = get_index(current_token->token_type, top);
 
     if (top_term->idx == IDX_END && input_idx == IDX_END) {
       if (top->type == ITEM_NT_E) {
+        if (data_type != NULL)
+          *data_type = top->data_type;
+
         stack_free_all(&top);
         return SUCCESS;
       } else {
@@ -216,12 +247,24 @@ int parse_expression(token *current_token) {
     if (prec_table[top_term->idx][input_idx] == PREC_EQ) {
       stack_push(&top, ITEM_TOKEN, current_token->token_type, input_idx,
                  DTYPE_UNKNOWN);
-      consume_token(current_token);
+      (*idx)++;
     } else if (prec_table[top_term->idx][input_idx] == PREC_SH) {
+      DType result_type = DTYPE_UNKNOWN;
+
+      if (input_idx == IDX_OPD) {
+        int err_code = SUCCESS;
+        result_type = get_term_type(current_token, symtable, &err_code);
+
+        if (err_code != SUCCESS) {
+          stack_free_all(&top);
+          return err_code;
+        }
+      }
+
       insert_marker(&top);
       stack_push(&top, ITEM_TOKEN, current_token->token_type, input_idx,
-                 DTYPE_UNKNOWN);
-      consume_token(current_token);
+                 result_type);
+      (*idx)++;
     } else if (prec_table[top_term->idx][input_idx] == PREC_RE) {
       int err = reduce(&top);
 

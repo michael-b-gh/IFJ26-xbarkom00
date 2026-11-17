@@ -11,6 +11,7 @@
 
 #include "scanner.h"
 #include "symtable.h"
+#include "token_buffer.h"
 
 // Indexes for precedence table
 typedef enum {
@@ -21,7 +22,8 @@ typedef enum {
   IDX_L_PAR,
   IDX_R_PAR,
   IDX_OPD,
-  IDX_END
+  IDX_UNARY,
+  IDX_END,
 } prec_idx_t;
 
 // Signs for precedence table
@@ -39,6 +41,7 @@ typedef struct stack_item {
   struct stack_item *next;
 } stack_item_t;
 
-int parse_expression(token *current_token);
+int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
+                     DType *data_type);
 
 #endif
