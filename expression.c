@@ -22,7 +22,7 @@ void stack_pop(stack_item_t **top);
 void stack_free_all(stack_item_t **top);
 stack_item_t *find_top_terminal(stack_item_t *top);
 int insert_marker(stack_item_t **top);
-int reduce(stack_item_t **top);
+int reduce(stack_item_t **top, bool check_types);
 int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
                      DType *data_type);
 
@@ -164,7 +164,7 @@ int insert_marker(stack_item_t **top) {
 }
 
 // Reduces the top handle (< ...) to a single non-terminal E
-int reduce(stack_item_t **top) {
+int reduce(stack_item_t **top, bool check_types) {
   stack_item_t *curr = *top;
   int cnt = 0;
   DType result_type = DTYPE_UNKNOWN;
@@ -189,9 +189,13 @@ int reduce(stack_item_t **top) {
     if (node_1st->idx == IDX_R_PAR && node_2nd->idx == IDX_L_PAR)
       result_type = DTYPE_UNIT;
     else if (node_2nd->idx == IDX_UNARY && node_1st->type == ITEM_NT_E) {
-      result_type = check_unary_op(node_1st->data_type, node_2nd->token_type);
-      if (result_type == DTYPE_UNKNOWN)
-        return TYPE_INC_SEM_ERR;
+      if (check_types)
+        result_type = check_unary_op(node_1st->data_type, node_2nd->token_type);
+
+      if (check_types) {
+        if (result_type == DTYPE_UNKNOWN)
+          return TYPE_INC_SEM_ERR;
+      }
     } else
       return SYN_ERR;
   } else if (cnt == 3) {
@@ -201,11 +205,14 @@ int reduce(stack_item_t **top) {
 
     if (node_3rd->type == ITEM_NT_E && node_2nd->type == ITEM_TOKEN &&
         node_1st->type == ITEM_NT_E) {
-      result_type = check_binary_op(node_3rd->data_type, node_1st->data_type,
-                                    node_2nd->token_type);
+      if (check_types)
+        result_type = check_binary_op(node_3rd->data_type, node_1st->data_type,
+                                      node_2nd->token_type);
 
-      if (result_type == DTYPE_UNKNOWN)
-        return TYPE_INC_SEM_ERR;
+      if (check_types) {
+        if (result_type == DTYPE_UNKNOWN)
+          return TYPE_INC_SEM_ERR;
+      }
     } else if (node_3rd->idx == IDX_L_PAR && node_2nd->type == ITEM_NT_E &&
                node_1st->idx == IDX_R_PAR)
       result_type = node_2nd->data_type;
@@ -253,7 +260,8 @@ int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
 
       if (input_idx == IDX_OPD) {
         int err_code = SUCCESS;
-        result_type = get_term_type(current_token, symtable, &err_code);
+        if (symtable != NULL)
+          result_type = get_term_type(current_token, symtable, &err_code);
 
         if (err_code != SUCCESS) {
           stack_free_all(&top);
@@ -266,7 +274,7 @@ int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
                  result_type);
       (*idx)++;
     } else if (prec_table[top_term->idx][input_idx] == PREC_RE) {
-      int err = reduce(&top);
+      int err = reduce(&top, symtable != NULL);
 
       if (err != SUCCESS) {
         stack_free_all(&top);
