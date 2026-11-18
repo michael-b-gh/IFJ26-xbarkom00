@@ -9,6 +9,14 @@
 #ifndef _CODEGEN_IFJ26_H
 #define _CODEGEN_IFJ26_H
 
+void generate_program_start(const char *main_name);
+
+void generate_program_end();
+
+void generate_func_start(const char *name);
+
+void generate_func_end();
+
 void generate_read(char *var, char *type);
 
 void generate_write(char *symb);
