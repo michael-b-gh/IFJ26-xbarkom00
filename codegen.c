@@ -9,6 +9,49 @@
 #include <stdio.h>
 #include "codegen.h"
 
+**
+ * @brief generates the start of the program
+ *
+ * @param main_name name of the main function
+ * @return void
+ */
+void generate_program_start(const char *main_name) {
+          printf(".IFJcode26\n");
+          printf("CREATEFRAME\n");
+          printf("CALL $%s\n", main_name);
+          printf("EXIT int@0\n");
+}
+
+/**
+ * @brief generates the end of the program
+ *
+ * @return void
+ */
+void generate_program_end() {
+          generate_buildins();
+}
+
+/**
+ * @brief generates the start of a function
+ *
+ * @param name name of the function
+ * @return void
+ */
+void generate_func_start(const char *name) {
+          printf("LABEL $%s\n", name);
+          printf("PUSHFRAME\n");
+}
+
+/**
+ * @brief generates the end of a function
+ *
+ * @return void
+ */
+void generate_func_end() {
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
 /**
  * @brief generates instruction READ
  *
