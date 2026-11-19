@@ -92,10 +92,34 @@ int get_next_token(token* current_token) {
       lenght_array = lenght_array * 2;
     }
 
-    if (new_line == 1) {
+    while (new_line == 1) {
       while (symbol == ' ') {
         counter++;
         symbol = NextSymbol();
+      }
+
+      if (symbol == '\n') {
+        counter = 0;
+        symbol = NextSymbol();
+        continue;
+      }
+
+      if (symbol == '/') {
+        symbol = NextSymbol();
+        if (symbol == '/') {
+          while (symbol != EOF && symbol != '\n') {
+            symbol = NextSymbol();
+          }
+          if (symbol == '\n') {
+            symbol = NextSymbol();
+          }
+          counter = 0;
+          continue;
+        } else {
+          if (symbol != EOF) {
+            ungetc(symbol, stdin);
+          }
+        }
       }
 
       if (parent_count >
@@ -109,54 +133,49 @@ int get_next_token(token* current_token) {
         goto skip_ind;
       }
 
-      if (symbol == '\n') {
-        counter = 0;
-        new_line = 1;
+      int last_ind;
+      if (dent_index == 0) {
+        last_ind = 0;
       } else {
-        int last_ind;
-        if (dent_index == 0) {
-          last_ind = 0;
-        } else {
-          last_ind = dent_arr[dent_index - 1];
-        }
+        last_ind = dent_arr[dent_index - 1];
+      }
 
-        if (counter > last_ind) {
-          if (symbol == EOF) {
-            counter = 0;
-            new_line = 0;
-          } else {
-            dent_arr[dent_index] = counter;
-            last_before_parent = counter;
-            dent_index++;
-            new_line = 0;
-            counter = 0;
-            ungetc(symbol, stdin);
-            current_token->token_type = TOKEN_IND;
-            current_token->attribute = NULL;
-            return SUCCESS;
-          }
-        } else if (counter < last_ind) {
-          dent_index--;
-          int new_max_ind;
-          if (dent_index == 0) {
-            new_max_ind = 0;
-          } else {
-            new_max_ind = dent_arr[dent_index - 1];
-          }
-          if (counter > new_max_ind) {
-            free(word);
-            return LEX_ERR;
-          }
-          if (symbol != EOF) {
-            ungetc(symbol, stdin);
-          }
-          current_token->token_type = TOKEN_DED;
-          current_token->attribute = NULL;
-          return SUCCESS;
+      if (counter > last_ind) {
+        if (symbol == EOF) {
+          counter = 0;
+          new_line = 0;
         } else {
+          dent_arr[dent_index] = counter;
+          last_before_parent = counter;
+          dent_index++;
           new_line = 0;
           counter = 0;
+          ungetc(symbol, stdin);
+          current_token->token_type = TOKEN_IND;
+          current_token->attribute = NULL;
+          return SUCCESS;
         }
+      } else if (counter < last_ind) {
+        dent_index--;
+        int new_max_ind;
+        if (dent_index == 0) {
+          new_max_ind = 0;
+        } else {
+          new_max_ind = dent_arr[dent_index - 1];
+        }
+        if (counter > new_max_ind) {
+          free(word);
+          return LEX_ERR;
+        }
+        if (symbol != EOF) {
+          ungetc(symbol, stdin);
+        }
+        current_token->token_type = TOKEN_DED;
+        current_token->attribute = NULL;
+        return SUCCESS;
+      } else {
+        new_line = 0;
+        counter = 0;
       }
     }
 
