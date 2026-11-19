@@ -102,7 +102,7 @@ int get_next_token(token* current_token) {
           0) {  // vygenerovane AI promptom: Ako preskocim rovno na moj switch
         if (counter <= last_before_parent) {
           free(word);
-          return LEX_ERR;
+          return SYN_ERR;
         }
         new_line = 0;
         counter = 0;
