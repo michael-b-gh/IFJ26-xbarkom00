@@ -45,7 +45,8 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
 int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
 int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                        DType *data_type);
-int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
+int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
+                    DType *data_type);
 
 /**
  * @brief Peeks at the type of next token
@@ -108,6 +109,9 @@ int parse_start(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
 // Verifies grammatical correctness of the prolog
 int parse_prolog(const TokenBuffer *buf, size_t *idx) {
+  while (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL)
+    (*idx)++;
+
   if (tokenBufferGet(buf, *idx)->token_type != TOKEN_IMPORT)
     return SYN_ERR;
 
@@ -281,10 +285,11 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
     if (res != SUCCESS)
       return res;
 
-    if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
+    token_t end_token = tokenBufferGet(buf, *idx)->token_type;
+    if (end_token == TOKEN_EOL)
+      (*idx)++;
+    else if (end_token != TOKEN_EOF)
       return SYN_ERR;
-
-    (*idx)++;
   }
 
   if (ctx->pass == 2)
@@ -550,10 +555,17 @@ int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   (*idx)++;
 
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL) {
+    if (ctx->pass == 2) {
+      int res = check_return_stmt(ctx->curr_func, false, DTYPE_UNIT);
+      if (res != SUCCESS)
+        return res;
+    }
+
     (*idx)++;
     return SUCCESS;
   } else {
-    int res = parse_expr_or_call(buf, idx, ctx, NULL);
+    DType expr_type = DTYPE_UNKNOWN;
+    int res = parse_expr_or_call(buf, idx, ctx, &expr_type);
     if (res != SUCCESS)
       return res;
 
@@ -561,6 +573,15 @@ int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
       return SYN_ERR;
 
     (*idx)++;
+
+    if (ctx->pass == 2) {
+      if (expr_type == DTYPE_BOOLEAN)
+        return TYPE_INC_SEM_ERR;
+
+      res = check_return_stmt(ctx->curr_func, true, expr_type);
+      if (res != SUCCESS)
+        return res;
+    }
 
     return SUCCESS;
   }
@@ -575,44 +596,66 @@ int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID &&
       peek_type(buf, idx) == TOKEN_L_PARENTHESIS) {
-    if (data_type != NULL)
-      *data_type = DTYPE_UNIT;
 
-    return parse_func_call(buf, idx, ctx);
+    return parse_func_call(buf, idx, ctx, data_type);
   } else
     return parse_expression(buf, idx, expr_st, data_type);
 }
 
 // Verifies function call
-int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
-  (void)ctx;
+int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
+                    DType *data_type) {
+  const char *func_name = tokenBufferGet(buf, *idx)->attribute;
+  DType arg_types[TYPES];
+  size_t arg_count = 0;
   (*idx)++;
   (*idx)++;
-
-  if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
-    (*idx)++;
-    return SUCCESS;
-  }
 
   while (tokenBufferGet(buf, *idx)->token_type != TOKEN_R_PARENTHESIS) {
-    if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ID &&
-        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_INT &&
-        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_DOUBLE &&
-        tokenBufferGet(buf, *idx)->token_type != TOKEN_LIT_STRING &&
-        tokenBufferGet(buf, *idx)->token_type != TOKEN_UNIT)
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_L_PARENTHESIS &&
+        peek_type(buf, idx) == TOKEN_R_PARENTHESIS) {
+      (*idx)++;
+      (*idx)++;
+      arg_types[arg_count] = DTYPE_UNIT;
+    } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID ||
+               tokenBufferGet(buf, *idx)->token_type == TOKEN_LIT_INT ||
+               tokenBufferGet(buf, *idx)->token_type == TOKEN_LIT_DOUBLE ||
+               tokenBufferGet(buf, *idx)->token_type == TOKEN_LIT_STRING) {
+      if (ctx->pass == 2) {
+        int err_code = SUCCESS;
+        arg_types[arg_count] =
+            get_term_type(tokenBufferGet(buf, *idx), ctx->st, &err_code);
+        if (err_code != SUCCESS)
+          return err_code;
+      }
+      (*idx)++;
+    } else
       return SYN_ERR;
 
-    (*idx)++;
+    arg_count++;
 
-    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COMMA)
+    if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COMMA) {
+      if (peek_type(buf, idx) == TOKEN_R_PARENTHESIS)
+        return SYN_ERR;
+
       (*idx)++;
-    else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_R_PARENTHESIS) {
-      // Parser hit ")": termination of the loop
-    } else
+    } else if (tokenBufferGet(buf, *idx)->token_type != TOKEN_R_PARENTHESIS)
       return SYN_ERR;
   }
 
   (*idx)++;
+
+  if (ctx->pass == 2) {
+    DType ret_type = DTYPE_UNKNOWN;
+    int res = check_function_call(ctx->st, func_name, arg_count, arg_types,
+                                  &ret_type);
+    if (res != SUCCESS)
+      return res;
+
+    if (data_type != NULL)
+      *data_type = ret_type;
+  }
+
   return SUCCESS;
 }
 
