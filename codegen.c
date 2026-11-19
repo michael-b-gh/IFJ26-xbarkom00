@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "codegen.h"
 
-**
+/**
  * @brief generates the start of the program
  *
  * @param main_name name of the main function
