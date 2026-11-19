@@ -3,14 +3,26 @@
 #
 # Makefile compiles all .c files into an executable ifj26
 # Author: Mykhailo Barkovskyi
-# Login: xbarkom00
+# Author: Lukáš Zeleňák
 #
 
+
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic
+CFLAGS = -std=c11 -Wall -Wextra -pedantic
+SRCS = Lexer.c token_buffer.c parser.c expression.c semantic.c symtable.c hashtable.c codegen.c
+TARGET = ifj26
+.PHONY: build check build-check clean test
 
 build:
-		$(CC) $(CFLAGS) *.c -o ifj26
+		$(CC) $(CFLAGS) $(SRCS) -o $(TARGET)
 
-clean: 
-		rm -f ifj26
+check:
+		$(CC) $(CFLAGS) -Werror $(SRCS) -fsyntax-only
+
+build-check: check build
+
+clean:
+		rm -f $(TARGET)
+
+test:
+		bash tests/run_tests.sh
