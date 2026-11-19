@@ -163,7 +163,8 @@ int get_next_token(token* current_token) {
   skip_ind:
     switch (state) {
       case STATE_START:
-        if (symbol == ' ') {      // vygenerovane AI promptom:
+        if (symbol == ' ' || symbol == '\t' ||
+            symbol == '\r') {     // vygenerovane AI promptom:
                                   // Zasekava sa mi STATE_COMMENT
           symbol = NextSymbol();  // vygenerovane AI promptom: Zasekava sa mi
                                   // STATE_COMMENT
