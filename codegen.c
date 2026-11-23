@@ -310,6 +310,44 @@ void generate_readInt() {
 }
 
 /**
+ * @brief generates built-in function readDouble(): Double
+ *
+ * @param var variable where the value will be saved into
+ * @return void
+ */
+void generate_readDouble() {
+          printf("LABEL $readDouble\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%var\n");
+          printf("READ LF@%%var float\n");
+
+          printf("PUSHS LF@%%var\n");
+
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function readLine(): String
+ *
+ * @param var variable where the value will be saved into
+ * @return void
+ */
+void generate_readLine() {
+          printf("LABEL $readLine\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%var\n");
+          printf("READ LF@%%var string\n");
+
+          printf("PUSHS LF@%%var\n");
+
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
  * @brief generates built-in function print(value: Any): Unit
  *
  * @param  value value to print
@@ -324,6 +362,104 @@ void generate_print() {
           printf("POPS LF@%%value\n");
           printf("WRITE LF@%%value\n");
 
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function toStr(value: Any): String
+ *
+ * @param value value to convert to string
+ * @param type variable to store the type of the value
+ * @param str variable to store the string representation of the value
+ * @return void
+ */
+void generate_toStr() {
+          printf("LABEL $toStr\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%type\n");
+          printf("DEFVAR LF@%%str\n");
+          printf("POPS LF@%%value\n");
+          
+          printf("TYPES LF@%%type LF@%%value\n");
+          printf("JUMPIFEQ $toStr_int LF@%%type string@int\n");
+          printf("JUMPIFEQ $toStr_float LF@%%type string@float\n");
+          printf("JUMPIFEQ $toStr_bool LF@%%type string@bool\n");
+          printf("JUMPIFEQ $toStr_nil LF@%%type string@nil\n");
+          printf("JUMPIFEQ $toStr_string LF@%%type string@string\n");
+
+          printf("LABEL $toStr_int\n");
+          printf("INT2STRS LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_float\n");
+          printf("FLOAT2STRS LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+          
+          printf("LABEL $toStr_bool\n");
+          printf("JUMPIFEQ $toStr_true LF@%%value bool@true\n");
+          printf("MOVE LF@%%str string@false\n");
+          printf("JUMP $toStr_end\n");
+          printf("LABEL $toStr_true\n");
+          printf("MOVE LF@%%str string@true\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_nil\n");
+          printf("MOVE LF@%%str string@nil\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_string\n");
+          printf("MOVE LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_end\n");
+          printf("PUSHS LF@%%str\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function toInt(value: Double): Int
+ *
+ * @param value value to convert to int
+ * @param int variable to store the int representation of the value
+ * @return void
+ */
+void generate_toInt() {
+          printf("LABEL $toInt\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%int\n");
+          printf("POPS LF@%%value\n");
+
+          printf("FLOAT2INTS LF@%%int LF@%%value\n");
+
+          printf("PUSHS LF@%%int\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function strLenght(value: String): Int
+ *
+ * @param value string to get the length of
+ * @param length variable to store the length of the string
+ * @return void
+ */
+void generate_strLenght() {
+          printf("LABEL $strLenght\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%length\n");
+          printf("POPS LF@%%value\n");
+
+          printf("STRLEN LF@%%length LF@%%value\n");
+
+          printf("PUSHS LF@%%length\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -463,9 +599,14 @@ void generate_chr() {
  * @return void
  */
 void generate_buildins() {
-    generate_readInt();
-    generate_print();
-    generate_subStr();
-    generate_ord();
-    generate_chr();
+          generate_readInt();
+          generate_readDouble();
+          generate_readLine();
+          generate_print();
+          generate_toStr();
+          generate_toInt();
+          generate_strLenght();
+          generate_subStr();
+          generate_ord();
+          generate_chr();
 }
