@@ -18,6 +18,8 @@
 void generate_program_start(const char *main_name) {
           printf(".IFJcode26\n");
           printf("CREATEFRAME\n");
+          printf("DEFVAR GF@%%tmp1\n");
+          printf("DEFVAR GF@%%tmp2\n");
           printf("CALL $%s\n", main_name);
           printf("EXIT int@0\n");
 }
@@ -272,9 +274,6 @@ void generate_int2floats() {
  * @return void
  */
 void generate_concats() {
-          printf("DEFVAR GF@%%tmp1\n");
-          printf("DEFVAR GF@%%tmp2\n");
-
           printf("POPS GF@%%tmp2\n");
           printf("POPS GF@%%tmp1\n");
           printf("CONCAT GF@%%tmp1 GF@%%tmp1 GF@%%tmp2\n");
@@ -361,10 +360,15 @@ void generate_subStr() {
           printf("STRLEN LF@%%length LF@%%value\n");
 
           printf("LT LF@%%p LF@%%start int@0\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("LT LF@%%p LF@%%end int@0\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%start LF@%%end\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%start LF@%%length\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("EQ LF@%%p LF@%%start LF@%%length\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%end LF@%%length\n");
           printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
 
@@ -409,8 +413,11 @@ void generate_ord() {
           printf("STRLEN LF@%%length LF@%%value\n");
 
           printf("EQ LF@%%p LF@%%length int@0\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("LT LF@%%p LF@%%index int@0\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("EQ LF@%%p LF@%%index LF@%%length\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%index LF@%%length\n");
           printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
 
@@ -422,7 +429,9 @@ void generate_ord() {
           printf("RETURN\n");
 
           printf("LABEL $ord_error\n");
-          printf("EXIT int@-1\n");
+          printf("PUSHS int@-1\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 }
 
 /**
