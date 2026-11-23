@@ -65,7 +65,17 @@ void generate_assign(const char *varName);
 
 void generate_readInt();
 
+void generate_readDouble();
+
+void generate_readLine();
+
 void generate_print();
+
+void generate_toStr();
+
+void generate_toInt();
+
+void generate_strLenght();
 
 void generate_subStr();
 
