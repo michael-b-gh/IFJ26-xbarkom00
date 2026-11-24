@@ -302,9 +302,12 @@ void generate_readInt() {
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%var\n");
           printf("READ LF@%%var int\n");
-
+          
+          printf("JUMPIFNEQ $readInt_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var int@0\n");
+          
+          printf("LABEL $readInt_end\n");
           printf("PUSHS LF@%%var\n");
-
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -322,8 +325,11 @@ void generate_readDouble() {
           printf("DEFVAR LF@%%var\n");
           printf("READ LF@%%var float\n");
 
-          printf("PUSHS LF@%%var\n");
+          printf("JUMPIFNEQ $readDouble_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var float@0x0p+0\n");
 
+          printf("LABEL $readDouble_end\n");
+          printf("PUSHS LF@%%var\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -360,8 +366,11 @@ void generate_print() {
 
           printf("DEFVAR LF@%%value\n");
           printf("POPS LF@%%value\n");
-          printf("WRITE LF@%%value\n");
+          printf("JUMPIFNEQ $print_end nil@nil LF@%%value\n");
+          printf("MOVE LF@%%value string@()\n");
 
+          printf("LABEL $print_end\n");
+          printf("WRITE LF@%%value\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -407,7 +416,7 @@ void generate_toStr() {
           printf("JUMP $toStr_end\n");
 
           printf("LABEL $toStr_nil\n");
-          printf("MOVE LF@%%str string@nil\n");
+          printf("MOVE LF@%%str string@()\n");
           printf("JUMP $toStr_end\n");
 
           printf("LABEL $toStr_string\n");
