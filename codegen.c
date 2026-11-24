@@ -383,7 +383,7 @@ void generate_toStr() {
           printf("DEFVAR LF@%%str\n");
           printf("POPS LF@%%value\n");
           
-          printf("TYPES LF@%%type LF@%%value\n");
+          printf("TYPE LF@%%type LF@%%value\n");
           printf("JUMPIFEQ $toStr_int LF@%%type string@int\n");
           printf("JUMPIFEQ $toStr_float LF@%%type string@float\n");
           printf("JUMPIFEQ $toStr_bool LF@%%type string@bool\n");
@@ -391,11 +391,11 @@ void generate_toStr() {
           printf("JUMPIFEQ $toStr_string LF@%%type string@string\n");
 
           printf("LABEL $toStr_int\n");
-          printf("INT2STRS LF@%%str LF@%%value\n");
+          printf("INT2STR LF@%%str LF@%%value\n");
           printf("JUMP $toStr_end\n");
 
           printf("LABEL $toStr_float\n");
-          printf("FLOAT2STRS LF@%%str LF@%%value\n");
+          printf("FLOAT2STR LF@%%str LF@%%value\n");
           printf("JUMP $toStr_end\n");
           
           printf("LABEL $toStr_bool\n");
@@ -435,7 +435,7 @@ void generate_toInt() {
           printf("DEFVAR LF@%%int\n");
           printf("POPS LF@%%value\n");
 
-          printf("FLOAT2INTS LF@%%int LF@%%value\n");
+          printf("FLOAT2INT LF@%%int LF@%%value\n");
 
           printf("PUSHS LF@%%int\n");
           printf("POPFRAME\n");
