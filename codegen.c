@@ -41,6 +41,7 @@ void generate_program_end() {
  */
 void generate_func_start(const char *name) {
           printf("LABEL $%s\n", name);
+          printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
 }
 
