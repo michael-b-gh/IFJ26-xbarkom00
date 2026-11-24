@@ -485,6 +485,7 @@ void generate_subStr() {
           printf("DEFVAR LF@%%end\n");
           printf("DEFVAR LF@%%char\n");
           printf("DEFVAR LF@%%substring\n");
+          printf("MOVE LF@%%substring string@\n");
 
           printf("POPS LF@%%end\n");
           printf("POPS LF@%%start\n");
@@ -509,11 +510,13 @@ void generate_subStr() {
           printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
 
           printf("LABEL $subStr_loop\n");
+          printf("JUMPIFEQ $subStr_end LF@%%start LF@%%end\n");
           printf("GETCHAR LF@%%char LF@%%value LF@%%start\n");
           printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n");
           printf("ADD LF@%%start LF@%%start int@1\n");
-          printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n");
+          printf("JUMP $subStr_loop\n");
 
+          printf("LABEL $subStr_end\n");
           printf("PUSHS LF@%%substring\n");
 
           printf("POPFRAME\n");
