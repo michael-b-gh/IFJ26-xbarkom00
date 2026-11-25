@@ -122,6 +122,50 @@ int get_next_token(token* current_token) {
           counter = 0;
           yes_tab = 0;
           continue;
+        } else if (symbol == '*') {
+          int num_inside_comm = 1;
+          int last_symbol = ' ';
+          int newline_yes = 0;
+          symbol = NextSymbol();
+          while (num_inside_comm > 0) {
+            if (symbol == EOF) {
+              free(word);
+              lenght = 0;
+              return LEX_ERR;
+            }
+            if (symbol == '\n') {
+              newline_yes = 1;
+            }
+            if (last_symbol == '/' && symbol == '*') {
+              num_inside_comm++;
+              last_symbol = ' ';
+            } else if (last_symbol == '*' && symbol == '/') {
+              num_inside_comm--;
+              last_symbol = ' ';
+            } else {
+              last_symbol = symbol;
+            }
+            symbol = NextSymbol();
+          }
+          if (newline_yes == 1) {
+            counter = 0;
+            yes_tab = 0;
+            continue;
+          }
+          while (symbol == ' ' || symbol == '\t' || symbol == '\r') {
+            if (symbol == '\t') {
+              yes_tab = 1;
+            }
+            symbol = NextSymbol();
+          }
+          if (symbol == '\n' || symbol == '/') {
+            if (symbol == '\n') {
+              counter = 0;
+              yes_tab = 0;
+              symbol = NextSymbol();
+            }
+            continue;
+          }
         } else {
           if (symbol != EOF) {
             ungetc(symbol, stdin);
