@@ -63,6 +63,24 @@ void generate_concats();
 
 void generate_assign(const char *varName);
 
+void generate_defvar_local(const char *name);
+
+int generate_if_start();
+
+void generate_if_else(int id);
+
+void generate_if_end(int id);
+
+int generate_while_start(void);
+
+void generate_while_cond_end(int id);
+
+void generate_while_end(int id);
+
+void generate_call(const char *name);
+
+void generate_return();
+
 void generate_readInt();
 
 void generate_readDouble();
