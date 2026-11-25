@@ -4,7 +4,6 @@
  * @file Lexer.c
  * @brief Lexer(Lexical analyzer) takes text on input and translate it into
  * Tokens for parser
- * @author Juraj Pauček (xpaucej00)
  */
 
 #include <ctype.h>
@@ -363,6 +362,9 @@ int get_next_token(token* current_token) {
         if (isdigit(symbol)) {
           state = STATE_DOUBLE;
           word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          state = STATE_EXP_NUM_NO_E;
           break;
         }
         ungetc(symbol, stdin);
@@ -983,6 +985,12 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == '\\') {
+          state = STATE_STRING;
+        } else if (symbol == '\n' || symbol == '\r' || symbol == EOF) {
+          free(word);
+          lenght = 0;
+          return LEX_ERR;
         } else {
           state = STATE_STRING;
           word[lenght] = symbol;
