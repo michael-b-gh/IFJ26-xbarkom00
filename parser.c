@@ -35,13 +35,16 @@ int parse_main(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
 int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
 int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
                    ParserCtx *ctx);
-int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
+int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
+             DType *data_type);
 int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
-int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type);
+int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type,
+               ParserCtx *ctx);
 int parse_param(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                 const char **param_names, DType *param_types,
                 size_t *param_count);
-int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
+int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
+                DType *out_last_type, bool *ret_out);
 int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx);
 int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                        DType *data_type);
@@ -173,7 +176,7 @@ int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_COLON) {
     (*idx)++;
 
-    res = parse_type(buf, idx, &annot_type);
+    res = parse_type(buf, idx, &annot_type, ctx);
     if (res != SUCCESS)
       return res;
   }
@@ -237,7 +240,7 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
     (*idx)++;
     has_explicit_ret = true;
 
-    res = parse_type(buf, idx, &ret_type);
+    res = parse_type(buf, idx, &ret_type, ctx);
     if (res != SUCCESS)
       return res;
   }
@@ -274,14 +277,17 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
       symTableInsertVariable(ctx->st, param_names[i], param_types[i], false);
   }
 
+  DType body_type = DTYPE_UNKNOWN;
+  bool ret_all = false;
+
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL) {
     (*idx)++;
 
-    res = parse_block(buf, idx, ctx);
+    res = parse_block(buf, idx, ctx, &body_type, &ret_all);
     if (res != SUCCESS)
       return res;
   } else {
-    res = parse_expr_or_call(buf, idx, ctx, NULL);
+    res = parse_expr_or_call(buf, idx, ctx, &body_type);
     if (res != SUCCESS)
       return res;
 
@@ -292,15 +298,28 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
       return SYN_ERR;
   }
 
-  if (ctx->pass == 2)
+  if (ctx->pass == 2) {
+    res = check_function_body_end(ctx->curr_func, body_type, ret_all);
+    if (res != SUCCESS)
+      return res;
+
+    ctx->curr_func->inferState = INFER_RESOLVED;
+
+    if (ctx->curr_func->isMain && ctx->curr_func->returnType != DTYPE_UNIT)
+      return TYPE_INC_SEM_ERR;
+
     symTablePopScope(ctx->st);
+  }
 
   return SUCCESS;
 }
 
 // Verifies grammatical correctness of an if-statement
-int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
+int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
+             DType *data_type) {
   DType cond_type = DTYPE_UNKNOWN;
+  DType then_type = DTYPE_UNIT, else_type = DTYPE_UNIT;
+  bool ret_then = false, ret_else = false;
   int res;
   (*idx)++;
 
@@ -328,7 +347,7 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
   (*idx)++;
 
-  res = parse_block(buf, idx, ctx);
+  res = parse_block(buf, idx, ctx, &then_type, &ret_then);
   if (res != SUCCESS)
     return res;
 
@@ -342,10 +361,22 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
   (*idx)++;
 
-  res = parse_block(buf, idx, ctx);
+  res = parse_block(buf, idx, ctx, &else_type, &ret_else);
   if (res != SUCCESS)
     return res;
 
+  if (ret_out != NULL)
+    *ret_out = ret_then && ret_else;
+
+  if (data_type != NULL) {
+    if (((ret_then || then_type == DTYPE_UNIT) &&
+         (ret_else || else_type == DTYPE_UNIT)) ||
+        (ctx->pass == 2 && ctx->curr_func->hasExplicitReturn &&
+         ctx->curr_func->returnType == DTYPE_UNIT))
+      *data_type = DTYPE_UNIT;
+    else
+      *data_type = DTYPE_UNKNOWN;
+  }
   return SUCCESS;
 }
 
@@ -379,7 +410,7 @@ int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
   (*idx)++;
 
-  res = parse_block(buf, idx, ctx);
+  res = parse_block(buf, idx, ctx, NULL, NULL);
   if (res != SUCCESS)
     return res;
 
@@ -387,7 +418,8 @@ int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 }
 
 // Verifies data type annotations
-int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type) {
+int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type,
+               ParserCtx *ctx) {
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_INT ||
       tokenBufferGet(buf, *idx)->token_type == TOKEN_DOUBLE ||
       tokenBufferGet(buf, *idx)->token_type == TOKEN_STRING ||
@@ -416,6 +448,17 @@ int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type) {
     (*idx)++;
 
     return SUCCESS;
+  } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID) {
+    if (data_type != NULL)
+      *data_type = DTYPE_UNKNOWN;
+
+    (*idx)++;
+
+    if (ctx->pass == 1) {
+      record_sem_err(ctx, UNDEF_SEM_ERR);
+      return SUCCESS;
+    } else
+      return UNDEF_SEM_ERR;
   }
 
   return SYN_ERR;
@@ -448,7 +491,7 @@ int parse_param(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 
     DType param_type = DTYPE_UNKNOWN;
 
-    res = parse_type(buf, idx, &param_type);
+    res = parse_type(buf, idx, &param_type, ctx);
     if (res != SUCCESS)
       return res;
 
@@ -474,7 +517,10 @@ int parse_param(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 }
 
 // Verifies block statements and literals
-int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
+int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
+                DType *out_last_type, bool *ret_out) {
+  DType last_type = DTYPE_UNIT;
+  bool block_ret = false;
   int res;
 
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IND) {
@@ -490,18 +536,33 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
       else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_VAR ||
                tokenBufferGet(buf, *idx)->token_type == TOKEN_VAL) {
+        last_type = DTYPE_UNIT;
+        block_ret = false;
+
         res = parse_variable(buf, idx, ctx);
         if (res != SUCCESS)
           return res;
       } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IF) {
-        res = parse_if(buf, idx, ctx);
+        bool ret_if = false;
+        DType if_type = DTYPE_UNIT;
+
+        res = parse_if(buf, idx, ctx, &ret_if, &if_type);
         if (res != SUCCESS)
           return res;
+
+        last_type = if_type;
+        block_ret = ret_if;
       } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_WHILE) {
+        last_type = DTYPE_UNIT;
+        block_ret = false;
+
         res = parse_while(buf, idx, ctx);
         if (res != SUCCESS)
           return res;
       } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_RETURN) {
+        last_type = DTYPE_UNIT;
+        block_ret = true;
+
         res = parse_return(buf, idx, ctx);
         if (res != SUCCESS)
           return res;
@@ -509,6 +570,8 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
                  peek_type(buf, idx) == TOKEN_ASSIGN) {
         char *name = tokenBufferGet(buf, *idx)->attribute;
         DType rhs_type = DTYPE_UNKNOWN;
+        last_type = DTYPE_UNIT;
+        block_ret = false;
         (*idx)++;
         (*idx)++;
 
@@ -530,13 +593,16 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
 
         (*idx)++;
       } else {
-        res = parse_expr_or_call(buf, idx, ctx, NULL);
+        DType stmt_type = DTYPE_UNKNOWN;
+        block_ret = false;
+        res = parse_expr_or_call(buf, idx, ctx, &stmt_type);
         if (res != SUCCESS)
           return res;
 
         if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
           return SYN_ERR;
 
+        last_type = stmt_type;
         (*idx)++;
       }
     }
@@ -545,6 +611,12 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
     }
   } else
     return SYN_ERR;
+
+  if (out_last_type != NULL)
+    *out_last_type = last_type;
+
+  if (ret_out != NULL)
+    *ret_out = block_ret;
 
   (*idx)++;
   return SUCCESS;
