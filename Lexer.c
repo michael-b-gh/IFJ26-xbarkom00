@@ -363,6 +363,9 @@ int get_next_token(token* current_token) {
         if (isdigit(symbol)) {
           state = STATE_DOUBLE;
           word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          state = STATE_EXP_NUM_NO_E;
           break;
         }
         ungetc(symbol, stdin);
