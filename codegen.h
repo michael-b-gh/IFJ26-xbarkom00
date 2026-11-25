@@ -81,6 +81,20 @@ void generate_call(const char *name);
 
 void generate_return();
 
+void generate_unary_minus_int();
+
+void generate_unary_minus_float();
+
+void generate_le();
+
+void generate_ge();
+
+void generate_ne();
+
+void generate_escape_string(const char *str);
+
+void generate_float_literal(double value);
+
 void generate_readInt();
 
 void generate_readDouble();
