@@ -227,10 +227,12 @@ int get_next_token(token* current_token) {
         if (symbol != EOF) {
           ungetc(symbol, stdin);
         }
+        last_before_parent = new_max_ind;
         current_token->token_type = TOKEN_DED;
         current_token->attribute = NULL;
         return SUCCESS;
       } else {
+        last_before_parent = last_ind;
         new_line = 0;
         counter = 0;
       }
@@ -265,7 +267,7 @@ int get_next_token(token* current_token) {
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         } else if (symbol == '\"') {
           state = STATE_STRING_START;
           word[lenght] = symbol;
