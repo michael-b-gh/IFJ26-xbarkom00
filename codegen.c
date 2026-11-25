@@ -558,9 +558,12 @@ void generate_readLine() {
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%var\n");
           printf("READ LF@%%var string\n");
+          
+          printf("JUMPIFNEQ $readLine_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var string@\n");
 
+          printf("LABEL $readLine_end\n");
           printf("PUSHS LF@%%var\n");
-
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -583,6 +586,7 @@ void generate_print() {
 
           printf("LABEL $print_end\n");
           printf("WRITE LF@%%value\n");
+          printf("PUSHS nil@nil\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -664,14 +668,14 @@ void generate_toInt() {
 }
 
 /**
- * @brief generates built-in function strLenght(value: String): Int
+ * @brief generates built-in function strLength(value: String): Int
  *
  * @param value string to get the length of
  * @param length variable to store the length of the string
  * @return void
  */
-void generate_strLenght() {
-          printf("LABEL $strLenght\n");
+void generate_strLength() {
+          printf("LABEL $strLength\n");
           printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%value\n");
@@ -829,7 +833,7 @@ void generate_buildins() {
           generate_print();
           generate_toStr();
           generate_toInt();
-          generate_strLenght();
+          generate_strLength();
           generate_subStr();
           generate_ord();
           generate_chr();
