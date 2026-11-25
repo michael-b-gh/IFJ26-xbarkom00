@@ -983,6 +983,8 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == '\\') {
+          state = STATE_STRING;
         } else {
           state = STATE_STRING;
           word[lenght] = symbol;
