@@ -71,7 +71,7 @@ void generate_if_else(int id);
 
 void generate_if_end(int id);
 
-int generate_while_start(void);
+int generate_while_start();
 
 void generate_while_cond_end(int id);
 
