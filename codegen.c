@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include "codegen.h"
 
+static int if_id = 0;
+static int while_id = 0;
+
 /**
  * @brief generates the start of the program
  *
@@ -289,6 +292,104 @@ void generate_concats() {
  */
 void generate_assign(const char *varName){
           printf("POPS LF@%s\n", varName);
+}
+
+/**
+ * @brief generates instruction DEFVAR_LOCAL
+ *
+ * @param name name of the local variable to define
+ * @return void
+ */
+void generate_defvar_local(const char *name) {
+          printf("DEFVAR LF@%s\n", name);
+}
+
+/**
+ * @brief generates the start of an if statement
+ *
+ * @param id id of the if statement
+ * @param tmp1 temporary variable to store the result of the condition
+ * @return id of the if statement
+ */
+int generate_if_start() {
+          int id = if_id++;
+          printf("POPS GF@%%tmp1\n");
+          printf("JUMPIFEQ $if_else_%d GF@%%tmp1 bool@false\n", id);
+          return id;
+}
+
+/**
+ * @brief generates the else part of an if statement
+ *
+ * @param id id of the if statement
+ * @return void
+ */
+void generate_if_else(int id) {
+          printf("JUMP $if_end_%d\n", id);
+          printf("LABEL $if_else_%d\n", id);
+}
+
+/**
+ * @brief generates the end of an if statement
+ *
+ * @param id id of the if statement
+ * @return void
+ */
+void generate_if_end(int id) {
+          printf("LABEL $if_end_%d\n", id);
+}
+
+/**
+ * @brief generates the start of a while loop
+ *
+ * @param id id of the while loop
+ * @return id of the while loop
+ */
+int generate_while_start(void) {
+          int id = while_id++;
+          printf("LABEL $while_start_%d\n", id);
+          return id;
+}
+
+/**
+ * @brief generates the condition check of a while loop
+ *
+ * @param id id of the while loop
+ * @return void
+ */
+void generate_while_cond_end(int id) {
+          printf("POPS GF@%%tmp1\n");
+          printf("JUMPIFEQ $while_end_%d GF@%%tmp1 bool@false\n", id);
+}
+
+/**
+ * @brief generates the end of a while loop
+ *
+ * @param id id of the while loop
+ * @return void
+ */
+void generate_while_end(int id) {
+          printf("JUMP $while_start_%d\n", id);
+          printf("LABEL $while_end_%d\n", id);
+}
+
+/**
+ * @brief generates a function call
+ *
+ * @param name name of the function/label to call
+ * @return void
+ */
+void generate_call(const char *name) {
+          printf("CALL $%s\n", name);
+}
+
+/**
+ * @brief generates a return statement
+ *
+ * @return void
+ */
+void generate_return() {
+          printf("RETURN\n");
 }
 
 /**
