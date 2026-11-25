@@ -355,6 +355,7 @@ int generate_while_start(void) {
  * @brief generates the condition check of a while loop
  *
  * @param id id of the while loop
+ * @param tmp1 temporary variable to store the condition result
  * @return void
  */
 void generate_while_cond_end(int id) {
@@ -390,6 +391,115 @@ void generate_call(const char *name) {
  */
 void generate_return() {
           printf("RETURN\n");
+}
+
+/**
+ * @brief generates a unary minus operation for int
+ *
+ * @return void
+ */
+void generate_unary_minus_int() {
+          printf("PUSHS int@-1\n");
+          printf("MULS\n");
+}
+
+/**
+ * @brief generates a unary minus operation for float
+ *
+ * @return void
+ */
+void generate_unary_minus_float() {
+          printf("PUSHS float@-0x1p+0\n");
+          printf("MULS\n");
+}
+
+/**
+ * @brief generates instruction LE (less than or equal)
+ *
+ * @param tmp1 temporary variable to store the first operand
+ * @param tmp2 temporary variable to store the second operand
+ * @return void
+ */
+void generate_le() {
+          printf("POPS GF@%%tmp2\n");
+          printf("POPS GF@%%tmp1\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("LTS\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("EQS\n");
+
+          printf("ORS\n");
+}
+
+/**
+ * @brief generates instruction GE (greater than or equal)
+ *
+ * @param tmp1 temporary variable to store the first operand
+ * @param tmp2 temporary variable to store the second operand
+ * @return void
+ */
+void generate_ge() {
+          printf("POPS GF@%%tmp2\n");
+          printf("POPS GF@%%tmp1\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("GTS\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("EQS\n");
+
+          printf("ORS\n");
+}
+
+/**
+ * @brief generates instruction NE (not equal)
+ *
+ * @return void
+ */
+void generate_ne() {
+          printf("EQS\n");
+          printf("NOTS\n");
+}
+
+/**
+ * @brief generates an instruction for escaping special characters in a string
+ *
+ * @param str string for escaping special characters
+ * @param p pointer to iterate through the string
+ * @param c current character being processed
+ * @return void
+ */
+void generate_escape_string(const char *str) {
+          printf("string@");
+          if (str == NULL) {
+              return;
+          }
+          for (const unsigned char *p = (const unsigned char *)str; *p != '\0'; p++) 
+          {
+            unsigned char c = *p;
+            if (c <= 32 || c == '#' || c == '\\') {
+                printf("\\%03u", (unsigned int)c);
+        } 
+            else {
+                putchar((int)c);
+        }
+    }
+}
+
+/**
+ * @brief generates a float literal
+ *
+ * @param value float value to be printed
+ * @return void
+ */
+void generate_float_literal(double value) {
+          printf("float@%a\n", value);
 }
 
 /**
