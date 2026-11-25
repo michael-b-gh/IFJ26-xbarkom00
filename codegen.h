@@ -107,7 +107,7 @@ void generate_toStr();
 
 void generate_toInt();
 
-void generate_strLenght();
+void generate_strLength();
 
 void generate_subStr();
 
