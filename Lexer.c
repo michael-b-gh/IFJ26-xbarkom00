@@ -775,7 +775,6 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
         }
-        state = STATE_START;
         if (comm_mul_line == 0) {
           lenght = 0;
           continue;
