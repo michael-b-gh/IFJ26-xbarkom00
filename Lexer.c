@@ -746,7 +746,6 @@ int get_next_token(token* current_token) {
         while (symbol != '\n' && symbol != EOF) {
           symbol = NextSymbol();
         }
-        state = STATE_START;
         lenght = 0;
         new_line = 1;
         free(word);
