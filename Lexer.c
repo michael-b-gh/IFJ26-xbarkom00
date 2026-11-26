@@ -4,7 +4,6 @@
  * @file Lexer.c
  * @brief Lexer(Lexical analyzer) takes text on input and translate it into
  * Tokens for parser
- * @author Juraj Pauček
  */
 
 #include <ctype.h>
@@ -168,6 +167,7 @@ int get_next_token(token* current_token) {
           new_line = 0;
           counter = 0;
           ungetc(symbol, stdin);
+          free(word);
           current_token->token_type = TOKEN_IND;
           current_token->attribute = NULL;
           return SUCCESS;
@@ -188,6 +188,7 @@ int get_next_token(token* current_token) {
           ungetc(symbol, stdin);
         }
         last_before_parent = new_max_ind;
+        free(word);
         current_token->token_type = TOKEN_DED;
         current_token->attribute = NULL;
         return SUCCESS;
@@ -224,10 +225,11 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
         } else if (symbol == ';') {
           new_line = 0;
+          free(word);
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           lenght = 0;
-          return SUCCESS;
+          return 0;
         } else if (symbol == '\"') {
           state = STATE_STRING_START;
           word[lenght] = symbol;
@@ -327,6 +329,7 @@ int get_next_token(token* current_token) {
             continue;
           } else {
             new_line = 1;
+            free(word);
             current_token->token_type = TOKEN_EOL;
             current_token->attribute = NULL;
             return SUCCESS;
@@ -335,15 +338,18 @@ int get_next_token(token* current_token) {
           if (new_line == 0 && dent_index > 0) {
             new_line = 1;
             counter = 0;
+            free(word);
             current_token->token_type = TOKEN_EOL;
             current_token->attribute = NULL;
             return SUCCESS;
           } else if (dent_index > 0) {
             dent_index--;
+            free(word);
             current_token->token_type = TOKEN_DED;
             current_token->attribute = NULL;
             return SUCCESS;
           } else {
+            free(word);
             current_token->token_type = TOKEN_EOF;
             current_token->attribute = NULL;
             return SUCCESS;
@@ -730,6 +736,7 @@ int get_next_token(token* current_token) {
         state = STATE_START;
         lenght = 0;
         new_line = 1;
+        free(word);
         current_token->token_type = TOKEN_EOL;
         current_token->attribute = NULL;
         return SUCCESS;
@@ -773,6 +780,7 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
           new_line = 1;
+          free(word);
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           return SUCCESS;
