@@ -64,6 +64,11 @@ struct Symbol {
   size_t bodyStartIdx; /**< Index in the token buffer where the function starts.
                           (function only) */
   InferState inferState; /**< State of return type inference. (function only)*/
+  size_t varId; /**< Unique ID of variable, for unique name. (variable only) */
+  size_t
+      firstVarId; /**< First ID of the variables in function. (function only) */
+  size_t
+      lastVarId; /**< Last ID of the variables in function. (function only) */
 };
 
 /**
@@ -138,7 +143,7 @@ Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
  *
  * @return Symbol If it is found.
  *         NULL If it is not found.
- *         NULL If symtable is NULL.
+ *         INT_ERR If symtable is NULL or name is NULL.
  */
 Symbol *symTableSearch(const SymTable *symtable, const char *name);
 
@@ -176,5 +181,22 @@ SymTableContext *symTableSaveContext(SymTable *symtable);
  * @param context Context returned from symTableSaveContext
  */
 void symTableRestoreContext(SymTable *symtable, SymTableContext *context);
+
+/**
+ * @brief Returns ID, which the next variable will get.
+ *
+ * @param symtable Table to get next variable ID.
+ *
+ * @return ID which the next variable will get, 0 if table is NULL.
+ */
+size_t symTableGetNextVarId(const SymTable *symtable);
+
+/**
+ * @brief Sets counter (nextVarId) to the value from nextId.
+ *
+ * @param symtable Table to set next variable ID.
+ * @param nextId ID that the next variable will get when inserted.
+ */
+void symTableSetNextVarId(SymTable *symtable, size_t nextId);
 
 #endif

@@ -28,6 +28,7 @@ struct SymTable {
   HashTable **scopes; /**< Array of pointers to hashtable */
   size_t count;       /**< Number of open scopes */
   size_t size;        /**< Capacity of scopes array */
+  size_t nextVarId;   /**< ID of the next inserted variable */
 };
 
 /**
@@ -69,6 +70,7 @@ SymTable *symTableCreate(void) {
   symtable->scopes[0] = global;
   symtable->size = SYMTABLE_INITIAL_SIZE;
   symtable->count = 1;
+  symtable->nextVarId = 1;
 
   DType printParams[] = {DTYPE_ANY};
   symTableDefineFunction(symtable, "print", 1, printParams, DTYPE_UNIT, false,
@@ -141,7 +143,7 @@ void symTablePopScope(SymTable *symtable) {
 
 Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType type,
                                bool isMutable) {
-  if (symtable == NULL)
+  if (symtable == NULL || name == NULL)
     exit(INT_ERR);
   Symbol *newSymbol = calloc(1, sizeof(Symbol));
   if (newSymbol == NULL)
@@ -152,6 +154,7 @@ Symbol *symTableInsertVariable(SymTable *symtable, const char *name, DType type,
   HashTableInsertResult result =
       hashTableInsert(symtable->scopes[symtable->count - 1], name, newSymbol);
   if (result == HASHTABLE_ITEM_INSERTED) {
+    newSymbol->varId = symtable->nextVarId++;
     return newSymbol;
   } else if (result == HASHTABLE_ITEM_EXISTS) {
     free(newSymbol);
@@ -166,7 +169,8 @@ Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
                                size_t paramCount, const DType *paramTypes,
                                DType returnType, bool isMain,
                                bool hasExplicitReturn, size_t bodyStartIdx) {
-  if (symtable == NULL)
+  if (symtable == NULL || name == NULL ||
+      (paramCount > 0 && paramTypes == NULL))
     exit(INT_ERR);
   Symbol *newSymbol = calloc(1, sizeof(Symbol));
   if (newSymbol == NULL)
@@ -210,8 +214,8 @@ Symbol *symTableDefineFunction(SymTable *symtable, const char *name,
 }
 
 Symbol *symTableSearch(const SymTable *symtable, const char *name) {
-  if (symtable == NULL)
-    return NULL;
+  if (symtable == NULL || name == NULL)
+    exit(INT_ERR);
   for (size_t i = symtable->count; i > 0; i--) {
     Symbol *symbol = hashTableSearch(symtable->scopes[i - 1], name);
     if (symbol != NULL) {
