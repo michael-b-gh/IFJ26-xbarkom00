@@ -4,6 +4,7 @@
  * @file Lexer.c
  * @brief Lexer(Lexical analyzer) takes text on input and translate it into
  * Tokens for parser
+ * @author Juraj Pauček
  */
 
 #include <ctype.h>
@@ -226,7 +227,7 @@ int get_next_token(token* current_token) {
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         } else if (symbol == '\"') {
           state = STATE_STRING_START;
           word[lenght] = symbol;
