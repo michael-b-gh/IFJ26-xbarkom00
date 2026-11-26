@@ -323,8 +323,8 @@ int get_next_token(token* current_token) {
             lenght++;
             symbol = NextSymbol();
           }
+          word[lenght] = '\0';
           if (strcmp(word, "@main") == 0) {
-            word[lenght] = '\0';
             ungetc(symbol, stdin);
             current_token->token_type = TOKEN_MAIN;
             current_token->attribute = word;
