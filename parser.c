@@ -7,6 +7,7 @@
  * @author Mykhailo Barkovskyi (xbarkom00)
  */
 
+#include "codegen.h"
 #include "error.h"
 #include "expression.h"
 #include "scanner.h"
@@ -25,6 +26,7 @@ typedef struct ParserCtx {
   int pass;
   int first_sem_err;
   Symbol *curr_func;
+  const char *main_name;
 } ParserCtx;
 
 token_t peek_type(const TokenBuffer *buf, size_t *idx);
@@ -54,10 +56,10 @@ int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 /**
  * @brief Peeks at the type of next token
  *
- * @param buf Buffer to read from
- * @param idx Index of the current token
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
  *
- * @return Token type
+ * @return Token type of next token
  */
 token_t peek_type(const TokenBuffer *buf, size_t *idx) {
   token *next_tok = tokenBufferGet(buf, *idx + 1);
@@ -68,6 +70,13 @@ token_t peek_type(const TokenBuffer *buf, size_t *idx) {
     return next_tok->token_type;
 }
 
+/**
+ * @brief Records semantic error in first pass
+ *
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param err code of semantic err?
+ */
 void record_sem_err(ParserCtx *ctx, int err) {
   if (err != SUCCESS && ctx->first_sem_err == SUCCESS)
     ctx->first_sem_err = err;
@@ -76,11 +85,12 @@ void record_sem_err(ParserCtx *ctx, int err) {
 /**
  * @brief Top-level driver for recursive descent parsing
  *
- * @param buf Buffer to read from
- * @param idx Index of the current token
- * @param st
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
  *
- * @return Return code (SUCCESS/Type of error)
+ * @return SUCCESS on success, or an error code
  */
 int parse_start(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   int res;
@@ -110,7 +120,14 @@ int parse_start(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   return SUCCESS;
 }
 
-// Verifies grammatical correctness of the prolog
+/**
+ * @brief Verifies grammatical correctness of the prolog
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ *
+ * @return SUCCESS on success, or SYN_ERR on syntax error
+ */
 int parse_prolog(const TokenBuffer *buf, size_t *idx) {
   while (tokenBufferGet(buf, *idx)->token_type == TOKEN_EOL)
     (*idx)++;
@@ -144,7 +161,16 @@ int parse_prolog(const TokenBuffer *buf, size_t *idx) {
   return SUCCESS;
 }
 
-// Verifies grammatical correctness of the main
+/**
+ * @brief Verifies grammatical correctness of the main
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or SYN_ERR on syntax error
+ */
 int parse_main(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   (*idx)++;
 
@@ -157,7 +183,16 @@ int parse_main(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   return parse_function(buf, idx, true, ctx);
 }
 
-// Verifies grammatical correctness of the variable definition
+/**
+ * @brief Verifies grammatical correctness of the variable definition
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   int res;
   bool mut = (tokenBufferGet(buf, *idx)->token_type == TOKEN_VAR);
@@ -200,6 +235,23 @@ int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
       return res;
   }
 
+  if (ctx->pass == 3) {
+    DType fin_type;
+
+    if (annot_type != DTYPE_UNKNOWN)
+      fin_type = annot_type;
+    else
+      fin_type = init_type;
+
+    Symbol *sym = symTableInsertVariable(ctx->st, name, fin_type,
+                                         mut); // a co datovy typ?
+
+    if (fin_type == DTYPE_DOUBLE && init_type == DTYPE_INT)
+      generate_int2floats();
+
+    printf("POPS LF@v$%zu\n", sym->varId);
+  }
+
   if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
     return SYN_ERR;
 
@@ -207,7 +259,18 @@ int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   return SUCCESS;
 }
 
-// Verifies grammatical correctness of the function definition
+/**
+ * @brief Verifies grammatical correctness of the function definition and
+ * generates code
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param is_main True if the function is annotated with @main
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
                    ParserCtx *ctx) {
   const char *param_names[NAMES];
@@ -255,6 +318,7 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
   if (ctx->pass == 1) {
     if (is_main) {
       DType main_ret = DTYPE_UNIT;
+      ctx->main_name = func_name;
       if (has_explicit_ret)
         main_ret = ret_type;
 
@@ -271,10 +335,36 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
 
   if (ctx->pass == 2) {
     ctx->curr_func = symTableSearch(ctx->st, func_name);
+    ctx->curr_func->firstVarId = symTableGetNextVarId(ctx->st);
     symTablePushScope(ctx->st);
 
     for (size_t i = 0; i < param_count; i++)
       symTableInsertVariable(ctx->st, param_names[i], param_types[i], false);
+  }
+
+  if (ctx->pass == 3) {
+    generate_func_start(func_name);
+
+    ctx->curr_func = symTableSearch(ctx->st, func_name);
+    symTableSetNextVarId(ctx->st, ctx->curr_func->firstVarId);
+
+    printf("DEFVAR LF@%%retval\n");
+    printf("MOVE LF@%%retval nil@nil\n");
+
+    for (size_t var = ctx->curr_func->firstVarId;
+         var < ctx->curr_func->lastVarId; var++)
+      printf("DEFVAR LF@v$%zu\n", var);
+
+    symTablePushScope(ctx->st);
+
+    for (size_t i = 0; i < param_count; i++)
+      symTableInsertVariable(ctx->st, param_names[i], param_types[i], false);
+
+    for (size_t i = param_count; i > 0; i--) {
+      Symbol *param_sym = symTableSearch(ctx->st, param_names[i - 1]);
+
+      printf("POPS LF@v$%zu\n", param_sym->varId);
+    }
   }
 
   DType body_type = DTYPE_UNKNOWN;
@@ -290,6 +380,9 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
     res = parse_expr_or_call(buf, idx, ctx, &body_type);
     if (res != SUCCESS)
       return res;
+
+    if (ctx->pass == 3)
+      printf("POPS LF@%%retval\n");
 
     token_t end_token = tokenBufferGet(buf, *idx)->token_type;
     if (end_token == TOKEN_EOL)
@@ -308,27 +401,54 @@ int parse_function(const TokenBuffer *buf, size_t *idx, bool is_main,
     if (ctx->curr_func->isMain && ctx->curr_func->returnType != DTYPE_UNIT)
       return TYPE_INC_SEM_ERR;
 
+    ctx->curr_func->lastVarId = symTableGetNextVarId(ctx->st);
+
+    symTablePopScope(ctx->st);
+  }
+
+  if (ctx->pass == 3) {
+    if (ctx->curr_func->returnType == DTYPE_UNIT)
+      printf("PUSHS nil@nil\n");
+    else
+      printf("PUSHS LF@%%retval\n");
+
+    if (body_type == DTYPE_INT && ctx->curr_func->returnType == DTYPE_DOUBLE)
+      generate_int2floats();
+
+    generate_func_end();
     symTablePopScope(ctx->st);
   }
 
   return SUCCESS;
 }
 
-// Verifies grammatical correctness of an if-statement
+/**
+ * @brief Verifies grammatical correctness of an if-statement
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param ret_out Output pointer indicating whether execution ended with return
+ * @param data_type Output pointer for the resulting/parsed data type
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
              DType *data_type) {
   DType cond_type = DTYPE_UNKNOWN;
   DType then_type = DTYPE_UNIT, else_type = DTYPE_UNIT;
   bool ret_then = false, ret_else = false;
   int res;
+  int if_id = 0;
   (*idx)++;
 
   SymTable *expr_st = NULL;
-  if (ctx->pass == 2)
+  if (ctx->pass == 2 || ctx->pass == 3)
     expr_st = ctx->st;
 
   // Check for condition in 2nd pass
-  res = parse_expression(buf, idx, expr_st, &cond_type);
+  res = parse_expression(buf, idx, expr_st, &cond_type, ctx->pass == 3);
   if (res != SUCCESS)
     return res;
 
@@ -336,6 +456,9 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
     if (cond_type != DTYPE_BOOLEAN)
       return TYPE_INC_SEM_ERR;
   }
+
+  if (ctx->pass == 3)
+    if_id = generate_if_start();
 
   if (tokenBufferGet(buf, *idx)->token_type != TOKEN_THEN)
     return SYN_ERR;
@@ -351,6 +474,9 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
   if (res != SUCCESS)
     return res;
 
+  if (ctx->pass == 3)
+    generate_if_else(if_id);
+
   if (tokenBufferGet(buf, *idx)->token_type != TOKEN_ELSE)
     return SYN_ERR;
 
@@ -364,6 +490,9 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
   res = parse_block(buf, idx, ctx, &else_type, &ret_else);
   if (res != SUCCESS)
     return res;
+
+  if (ctx->pass == 3)
+    generate_if_end(if_id);
 
   if (ret_out != NULL)
     *ret_out = ret_then && ret_else;
@@ -380,18 +509,31 @@ int parse_if(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx, bool *ret_out,
   return SUCCESS;
 }
 
-// Verifies grammatical correctness of a while-loop
+/**
+ * @brief Verifies grammatical correctness of a while-loop
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   DType cond_type = DTYPE_UNKNOWN;
   int res;
+  int while_id = 0;
   (*idx)++;
 
   SymTable *expr_st = NULL;
-  if (ctx->pass == 2)
+  if (ctx->pass == 2 || ctx->pass == 3)
     expr_st = ctx->st;
 
+  if (ctx->pass == 3)
+    while_id = generate_while_start();
+
   // Check for condition in 2nd pass
-  res = parse_expression(buf, idx, expr_st, &cond_type);
+  res = parse_expression(buf, idx, expr_st, &cond_type, ctx->pass == 3);
   if (res != SUCCESS)
     return res;
 
@@ -399,6 +541,9 @@ int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
     if (cond_type != DTYPE_BOOLEAN)
       return TYPE_INC_SEM_ERR;
   }
+
+  if (ctx->pass == 3)
+    generate_while_cond_end(while_id);
 
   if (tokenBufferGet(buf, *idx)->token_type != TOKEN_DO)
     return SYN_ERR;
@@ -414,10 +559,23 @@ int parse_while(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   if (res != SUCCESS)
     return res;
 
+  if (ctx->pass == 3)
+    generate_while_end(while_id);
+
   return SUCCESS;
 }
 
-// Verifies data type annotations
+/**
+ * @brief Verifies data type annotations
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param data_type Output pointer for the resulting/parsed data type
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type,
                ParserCtx *ctx) {
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_INT ||
@@ -464,7 +622,19 @@ int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type,
   return SYN_ERR;
 }
 
-// Verifies function parameter definitions
+/**
+ * @brief Verifies function parameter definitions
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param param_names Output array of parameter names
+ * @param param_types Output array of parameter types
+ * @param param_count Otuput pointer to the number of parsed parameters
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_param(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                 const char **param_names, DType *param_types,
                 size_t *param_count) {
@@ -516,7 +686,18 @@ int parse_param(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
   return SUCCESS;
 }
 
-// Verifies block statements and literals
+/**
+ * @brief Verifies block statements and literals
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param out_last_type Output pointer for the resulting type
+ * @param ret_out Output pointer indicating whether execution ended with return
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                 DType *out_last_type, bool *ret_out) {
   DType last_type = DTYPE_UNIT;
@@ -525,7 +706,7 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IND) {
 
-    if (ctx->pass == 2)
+    if (ctx->pass == 2 || ctx->pass == 3)
       symTablePushScope(ctx->st);
 
     (*idx)++;
@@ -542,6 +723,9 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
         res = parse_variable(buf, idx, ctx);
         if (res != SUCCESS)
           return res;
+
+        if (ctx->pass == 3)
+          printf("MOVE LF@%%retval nil@nil\n");
       } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_IF) {
         bool ret_if = false;
         DType if_type = DTYPE_UNIT;
@@ -549,6 +733,9 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
         res = parse_if(buf, idx, ctx, &ret_if, &if_type);
         if (res != SUCCESS)
           return res;
+
+        if (ctx->pass == 3)
+          printf("MOVE LF@%%retval nil@nil\n");
 
         last_type = if_type;
         block_ret = ret_if;
@@ -559,6 +746,9 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
         res = parse_while(buf, idx, ctx);
         if (res != SUCCESS)
           return res;
+
+        if (ctx->pass == 3)
+          printf("MOVE LF@%%retval nil@nil\n");
       } else if (tokenBufferGet(buf, *idx)->token_type == TOKEN_RETURN) {
         last_type = DTYPE_UNIT;
         block_ret = true;
@@ -588,6 +778,16 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
             return res;
         }
 
+        if (ctx->pass == 3) {
+          Symbol *sym = symTableSearch(ctx->st, name);
+
+          if (sym->type == DTYPE_DOUBLE && rhs_type == DTYPE_INT)
+            generate_int2floats();
+
+          printf("POPS LF@v$%zu\n", sym->varId);
+          printf("MOVE LF@%%retval nil@nil\n");
+        }
+
         if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
           return SYN_ERR;
 
@@ -599,6 +799,9 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
         if (res != SUCCESS)
           return res;
 
+        if (ctx->pass == 3)
+          printf("POPS LF@%%retval\n");
+
         if (tokenBufferGet(buf, *idx)->token_type != TOKEN_EOL)
           return SYN_ERR;
 
@@ -606,7 +809,7 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
         (*idx)++;
       }
     }
-    if (ctx->pass == 2) {
+    if (ctx->pass == 2 || ctx->pass == 3) {
       symTablePopScope(ctx->st);
     }
   } else
@@ -622,7 +825,16 @@ int parse_block(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
   return SUCCESS;
 }
 
-// Verifies return
+/**
+ * @brief Verifies return
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   (*idx)++;
 
@@ -631,6 +843,11 @@ int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
       int res = check_return_stmt(ctx->curr_func, false, DTYPE_UNIT);
       if (res != SUCCESS)
         return res;
+    }
+
+    if (ctx->pass == 3) {
+      printf("PUSHS nil@nil\n");
+      generate_func_end();
     }
 
     (*idx)++;
@@ -655,15 +872,36 @@ int parse_return(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
         return res;
     }
 
+    if (ctx->pass == 3) {
+      if (ctx->curr_func->returnType == DTYPE_UNIT) {
+        printf("POPS GF@%%tmp1\n");
+        printf("PUSHS nil@nil\n");
+      } else if (expr_type == DTYPE_INT &&
+                 ctx->curr_func->returnType == DTYPE_DOUBLE)
+        generate_int2floats();
+
+      generate_func_end();
+    }
+
     return SUCCESS;
   }
 }
 
-// Parses an expression or a function call
+/**
+ * @brief Parses an expression or a function call
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param data_type Output pointer for the resulting expression type
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                        DType *data_type) {
   SymTable *expr_st = NULL;
-  if (ctx->pass == 2)
+  if (ctx->pass == 2 || ctx->pass == 3)
     expr_st = ctx->st;
 
   if (tokenBufferGet(buf, *idx)->token_type == TOKEN_ID &&
@@ -671,21 +909,38 @@ int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
 
     return parse_func_call(buf, idx, ctx, data_type);
   } else
-    return parse_expression(buf, idx, expr_st, data_type);
+    return parse_expression(buf, idx, expr_st, data_type, ctx->pass == 3);
 }
 
-// Verifies function call
+/**
+ * @brief Verifies function call
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current index in the token buffer
+ * @param ctx Parser context (symbol table, pass number, error state, current
+ * function)
+ * @param data_type Output pointer for the resulting expression type
+ *
+ * @return Parsed function call or expression TODO?
+ */
 int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                     DType *data_type) {
   const char *func_name = tokenBufferGet(buf, *idx)->attribute;
   DType arg_types[TYPES];
   size_t arg_count = 0;
+  Symbol *called_func = NULL;
   (*idx)++;
   (*idx)++;
+
+  if (ctx->pass == 3)
+    called_func = symTableSearch(ctx->st, func_name);
 
   while (tokenBufferGet(buf, *idx)->token_type != TOKEN_R_PARENTHESIS) {
     if (tokenBufferGet(buf, *idx)->token_type == TOKEN_L_PARENTHESIS &&
         peek_type(buf, idx) == TOKEN_R_PARENTHESIS) {
+      if (ctx->pass == 3)
+        printf("PUSHS nil@nil\n");
+
       (*idx)++;
       (*idx)++;
       arg_types[arg_count] = DTYPE_UNIT;
@@ -699,6 +954,17 @@ int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
             get_term_type(tokenBufferGet(buf, *idx), ctx->st, &err_code);
         if (err_code != SUCCESS)
           return err_code;
+      }
+
+      if (ctx->pass == 3) {
+        emit_push_term(tokenBufferGet(buf, *idx), ctx->st);
+        int err_code = SUCCESS;
+        DType arg_type =
+            get_term_type(tokenBufferGet(buf, *idx), ctx->st, &err_code);
+
+        if (arg_type == DTYPE_INT &&
+            called_func->paramTypes[arg_count] == DTYPE_DOUBLE)
+          generate_int2floats();
       }
       (*idx)++;
     } else
@@ -728,11 +994,19 @@ int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
       *data_type = ret_type;
   }
 
+  if (ctx->pass == 3) {
+    generate_call(func_name);
+
+    if (data_type != NULL)
+      *data_type = called_func->returnType;
+  }
+
   return SUCCESS;
 }
 
-// @brief Main entry point; initializes the token stream and begins
-// recursive descent parsing
+/** @brief Main entry point; initializes the token stream and begins
+ *         recursive descent parsing
+ */
 int main() {
   TokenBuffer *buf = tokenBufferCreate();
 
@@ -774,6 +1048,18 @@ int main() {
   ctx.pass = 2;
   idx = 0;
   res = parse_start(buf, &idx, &ctx);
+
+  if (res != SUCCESS) {
+    tokenBufferFree(buf);
+    symTableFree(ctx.st);
+    return res;
+  }
+
+  generate_program_start(ctx.main_name);
+  ctx.pass = 3;
+  idx = 0;
+  res = parse_start(buf, &idx, &ctx);
+  generate_program_end();
 
   tokenBufferFree(buf);
   symTableFree(ctx.st);

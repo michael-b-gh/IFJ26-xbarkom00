@@ -41,7 +41,29 @@ typedef struct stack_item {
   struct stack_item *next;
 } stack_item_t;
 
+/**
+ * @brief Parses, type-checks, and optionally generates IFJcode26 for an
+ * expression
+ *
+ * @param buf Token buffer containing all input tokens
+ * @param idx Pointer to the current token index in the token buffer
+ * @param symtable Pointer to the symbol table (if NULL, type checking is
+ * skipped)
+ * @param data_type Output pointer for the resulting expression type (may be
+ * NULL)
+ * @param emit_code If true, emits IFJcode26 instructions to stdout
+ *
+ * @return SUCCESS on success, or an error code
+ */
 int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
-                     DType *data_type);
+                     DType *data_type, bool emit_code);
+
+/**
+ * @brief Emits a PUSHS instruction for a literal or variable token
+ *
+ * @param tok Pointer to the operand token (literal or variable identifier)
+ * @param symtable Pointer to the symbol table (used to resolve variable IDs)
+ */
+void emit_push_term(const token *tok, const SymTable *symtable);
 
 #endif
