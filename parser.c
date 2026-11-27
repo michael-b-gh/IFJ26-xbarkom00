@@ -75,7 +75,7 @@ token_t peek_type(const TokenBuffer *buf, size_t *idx) {
  *
  * @param ctx Parser context (symbol table, pass number, error state, current
  * function)
- * @param err code of semantic err?
+ * @param err Semantic error code to record
  */
 void record_sem_err(ParserCtx *ctx, int err) {
   if (err != SUCCESS && ctx->first_sem_err == SUCCESS)
@@ -169,7 +169,7 @@ int parse_prolog(const TokenBuffer *buf, size_t *idx) {
  * @param ctx Parser context (symbol table, pass number, error state, current
  * function)
  *
- * @return SUCCESS on success, or SYN_ERR on syntax error
+ * @return SUCCESS on success, or an error code
  */
 int parse_main(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
   (*idx)++;
@@ -243,8 +243,7 @@ int parse_variable(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx) {
     else
       fin_type = init_type;
 
-    Symbol *sym = symTableInsertVariable(ctx->st, name, fin_type,
-                                         mut); // a co datovy typ?
+    Symbol *sym = symTableInsertVariable(ctx->st, name, fin_type, mut);
 
     if (fin_type == DTYPE_DOUBLE && init_type == DTYPE_INT)
       generate_int2floats();
@@ -631,7 +630,7 @@ int parse_type(const TokenBuffer *buf, size_t *idx, DType *data_type,
  * function)
  * @param param_names Output array of parameter names
  * @param param_types Output array of parameter types
- * @param param_count Otuput pointer to the number of parsed parameters
+ * @param param_count Output pointer to the number of parsed parameters
  *
  * @return SUCCESS on success, or an error code
  */
@@ -921,7 +920,7 @@ int parse_expr_or_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
  * function)
  * @param data_type Output pointer for the resulting expression type
  *
- * @return Parsed function call or expression TODO?
+ * @return SUCCESS on success, or an error code
  */
 int parse_func_call(const TokenBuffer *buf, size_t *idx, ParserCtx *ctx,
                     DType *data_type) {

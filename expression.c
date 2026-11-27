@@ -30,7 +30,7 @@ int insert_marker(stack_item_t **top);
 int reduce(stack_item_t **top, bool check_types, bool emit_code);
 int parse_expression(const TokenBuffer *buf, size_t *idx, SymTable *symtable,
                      DType *data_type, bool emit_code);
-void emit_push_term(const token *token, const SymTable *symtable);
+void emit_push_term(const token *tok, const SymTable *symtable);
 
 prec_sign_t prec_table[TABLE_SIZE][TABLE_SIZE] = {
     {PREC_RE, PREC_RE, PREC_RE, PREC_RE, PREC_SH, PREC_RE, PREC_SH, PREC_SH,
@@ -160,7 +160,7 @@ void stack_free_all(stack_item_t **top) {
  *
  * @param top Pointer to the top of the precedence stack
  *
- * @return Pointer to the topmmost terminal on the stack or NULL if none exists
+ * @return Pointer to the topmost terminal on the stack or NULL if none exists
  */
 stack_item_t *find_top_terminal(stack_item_t *top) {
   while (top != NULL) {
@@ -211,7 +211,7 @@ int insert_marker(stack_item_t **top) {
  * optionally emits IFJcode26
  *
  * @param top Pointer to pointer to the top of the precedence stack
- * @param check_types If ture, performs semantic type checking during reduction
+ * @param check_types If true, performs semantic type checking during reduction
  * @param emit_code If true, emits IFJcode26 instructions to stdout
  *
  * @return SUCCESS on success, or an error code (SYN_ERR, TYPE_INC_SEM_ERR,
