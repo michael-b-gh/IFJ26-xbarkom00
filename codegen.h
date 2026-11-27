@@ -63,9 +63,51 @@ void generate_concats();
 
 void generate_assign(const char *varName);
 
+void generate_defvar_local(const char *name);
+
+int generate_if_start();
+
+void generate_if_else(int id);
+
+void generate_if_end(int id);
+
+int generate_while_start();
+
+void generate_while_cond_end(int id);
+
+void generate_while_end(int id);
+
+void generate_call(const char *name);
+
+void generate_return();
+
+void generate_unary_minus_int();
+
+void generate_unary_minus_float();
+
+void generate_le();
+
+void generate_ge();
+
+void generate_ne();
+
+void generate_escape_string(const char *str);
+
+void generate_float_literal(double value);
+
 void generate_readInt();
 
+void generate_readDouble();
+
+void generate_readLine();
+
 void generate_print();
+
+void generate_toStr();
+
+void generate_toInt();
+
+void generate_strLength();
 
 void generate_subStr();
 

@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include "codegen.h"
 
+static int if_id = 0;
+static int while_id = 0;
+
 /**
  * @brief generates the start of the program
  *
@@ -18,6 +21,8 @@
 void generate_program_start(const char *main_name) {
           printf(".IFJcode26\n");
           printf("CREATEFRAME\n");
+          printf("DEFVAR GF@%%tmp1\n");
+          printf("DEFVAR GF@%%tmp2\n");
           printf("CALL $%s\n", main_name);
           printf("EXIT int@0\n");
 }
@@ -39,6 +44,7 @@ void generate_program_end() {
  */
 void generate_func_start(const char *name) {
           printf("LABEL $%s\n", name);
+          printf("CREATEFRAME\n");
           printf("PUSHFRAME\n");
 }
 
@@ -272,9 +278,6 @@ void generate_int2floats() {
  * @return void
  */
 void generate_concats() {
-          printf("DEFVAR GF@%%tmp1\n");
-          printf("DEFVAR GF@%%tmp2\n");
-
           printf("POPS GF@%%tmp2\n");
           printf("POPS GF@%%tmp1\n");
           printf("CONCAT GF@%%tmp1 GF@%%tmp1 GF@%%tmp2\n");
@@ -292,6 +295,214 @@ void generate_assign(const char *varName){
 }
 
 /**
+ * @brief generates instruction DEFVAR_LOCAL
+ *
+ * @param name name of the local variable to define
+ * @return void
+ */
+void generate_defvar_local(const char *name) {
+          printf("DEFVAR LF@%s\n", name);
+}
+
+/**
+ * @brief generates the start of an if statement
+ *
+ * @param id id of the if statement
+ * @param tmp1 temporary variable to store the result of the condition
+ * @return id of the if statement
+ */
+int generate_if_start() {
+          int id = if_id++;
+          printf("POPS GF@%%tmp1\n");
+          printf("JUMPIFEQ $if_else_%d GF@%%tmp1 bool@false\n", id);
+          return id;
+}
+
+/**
+ * @brief generates the else part of an if statement
+ *
+ * @param id id of the if statement
+ * @return void
+ */
+void generate_if_else(int id) {
+          printf("JUMP $if_end_%d\n", id);
+          printf("LABEL $if_else_%d\n", id);
+}
+
+/**
+ * @brief generates the end of an if statement
+ *
+ * @param id id of the if statement
+ * @return void
+ */
+void generate_if_end(int id) {
+          printf("LABEL $if_end_%d\n", id);
+}
+
+/**
+ * @brief generates the start of a while loop
+ *
+ * @param id id of the while loop
+ * @return id of the while loop
+ */
+int generate_while_start(void) {
+          int id = while_id++;
+          printf("LABEL $while_start_%d\n", id);
+          return id;
+}
+
+/**
+ * @brief generates the condition check of a while loop
+ *
+ * @param id id of the while loop
+ * @param tmp1 temporary variable to store the condition result
+ * @return void
+ */
+void generate_while_cond_end(int id) {
+          printf("POPS GF@%%tmp1\n");
+          printf("JUMPIFEQ $while_end_%d GF@%%tmp1 bool@false\n", id);
+}
+
+/**
+ * @brief generates the end of a while loop
+ *
+ * @param id id of the while loop
+ * @return void
+ */
+void generate_while_end(int id) {
+          printf("JUMP $while_start_%d\n", id);
+          printf("LABEL $while_end_%d\n", id);
+}
+
+/**
+ * @brief generates a function call
+ *
+ * @param name name of the function/label to call
+ * @return void
+ */
+void generate_call(const char *name) {
+          printf("CALL $%s\n", name);
+}
+
+/**
+ * @brief generates a return statement
+ *
+ * @return void
+ */
+void generate_return() {
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates a unary minus operation for int
+ *
+ * @return void
+ */
+void generate_unary_minus_int() {
+          printf("PUSHS int@-1\n");
+          printf("MULS\n");
+}
+
+/**
+ * @brief generates a unary minus operation for float
+ *
+ * @return void
+ */
+void generate_unary_minus_float() {
+          printf("PUSHS float@-0x1p+0\n");
+          printf("MULS\n");
+}
+
+/**
+ * @brief generates instruction LE (less than or equal)
+ *
+ * @param tmp1 temporary variable to store the first operand
+ * @param tmp2 temporary variable to store the second operand
+ * @return void
+ */
+void generate_le() {
+          printf("POPS GF@%%tmp2\n");
+          printf("POPS GF@%%tmp1\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("LTS\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("EQS\n");
+
+          printf("ORS\n");
+}
+
+/**
+ * @brief generates instruction GE (greater than or equal)
+ *
+ * @param tmp1 temporary variable to store the first operand
+ * @param tmp2 temporary variable to store the second operand
+ * @return void
+ */
+void generate_ge() {
+          printf("POPS GF@%%tmp2\n");
+          printf("POPS GF@%%tmp1\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("GTS\n");
+
+          printf("PUSHS GF@%%tmp1\n");
+          printf("PUSHS GF@%%tmp2\n");
+          printf("EQS\n");
+
+          printf("ORS\n");
+}
+
+/**
+ * @brief generates instruction NE (not equal)
+ *
+ * @return void
+ */
+void generate_ne() {
+          printf("EQS\n");
+          printf("NOTS\n");
+}
+
+/**
+ * @brief generates an instruction for escaping special characters in a string
+ *
+ * @param str string for escaping special characters
+ * @param p pointer to iterate through the string
+ * @param c current character being processed
+ * @return void
+ */
+void generate_escape_string(const char *str) {
+          printf("string@");
+          if (str == NULL) {
+              return;
+          }
+          for (const unsigned char *p = (const unsigned char *)str; *p != '\0'; p++) 
+          {
+            unsigned char c = *p;
+            if (c <= 32 || c == '#' || c == '\\') {
+                printf("\\%03u", (unsigned int)c);
+        } 
+            else {
+                putchar((int)c);
+        }
+    }
+}
+
+/**
+ * @brief generates a float literal
+ *
+ * @param value float value to be printed
+ * @return void
+ */
+void generate_float_literal(double value) {
+          printf("float@%a\n", value);
+}
+
+/**
  * @brief generates built-in function readInt(): Int
  *
  * @param var variable where the value will be saved into
@@ -303,9 +514,56 @@ void generate_readInt() {
           printf("PUSHFRAME\n");
           printf("DEFVAR LF@%%var\n");
           printf("READ LF@%%var int\n");
-
+          
+          printf("JUMPIFNEQ $readInt_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var int@0\n");
+          
+          printf("LABEL $readInt_end\n");
           printf("PUSHS LF@%%var\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
 
+/**
+ * @brief generates built-in function readDouble(): Double
+ *
+ * @param var variable where the value will be saved into
+ * @return void
+ */
+void generate_readDouble() {
+          printf("LABEL $readDouble\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%var\n");
+          printf("READ LF@%%var float\n");
+
+          printf("JUMPIFNEQ $readDouble_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var float@0x0p+0\n");
+
+          printf("LABEL $readDouble_end\n");
+          printf("PUSHS LF@%%var\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function readLine(): String
+ *
+ * @param var variable where the value will be saved into
+ * @return void
+ */
+void generate_readLine() {
+          printf("LABEL $readLine\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%var\n");
+          printf("READ LF@%%var string\n");
+          
+          printf("JUMPIFNEQ $readLine_end nil@nil LF@%%var\n");
+          printf("MOVE LF@%%var string@\n");
+
+          printf("LABEL $readLine_end\n");
+          printf("PUSHS LF@%%var\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -323,8 +581,110 @@ void generate_print() {
 
           printf("DEFVAR LF@%%value\n");
           printf("POPS LF@%%value\n");
-          printf("WRITE LF@%%value\n");
+          printf("JUMPIFNEQ $print_end nil@nil LF@%%value\n");
+          printf("MOVE LF@%%value string@()\n");
 
+          printf("LABEL $print_end\n");
+          printf("WRITE LF@%%value\n");
+          printf("PUSHS nil@nil\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function toStr(value: Any): String
+ *
+ * @param value value to convert to string
+ * @param type variable to store the type of the value
+ * @param str variable to store the string representation of the value
+ * @return void
+ */
+void generate_toStr() {
+          printf("LABEL $toStr\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%type\n");
+          printf("DEFVAR LF@%%str\n");
+          printf("POPS LF@%%value\n");
+          
+          printf("TYPE LF@%%type LF@%%value\n");
+          printf("JUMPIFEQ $toStr_int LF@%%type string@int\n");
+          printf("JUMPIFEQ $toStr_float LF@%%type string@float\n");
+          printf("JUMPIFEQ $toStr_bool LF@%%type string@bool\n");
+          printf("JUMPIFEQ $toStr_nil LF@%%type string@nil\n");
+          printf("JUMPIFEQ $toStr_string LF@%%type string@string\n");
+
+          printf("LABEL $toStr_int\n");
+          printf("INT2STR LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_float\n");
+          printf("FLOAT2STR LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+          
+          printf("LABEL $toStr_bool\n");
+          printf("JUMPIFEQ $toStr_true LF@%%value bool@true\n");
+          printf("MOVE LF@%%str string@false\n");
+          printf("JUMP $toStr_end\n");
+          printf("LABEL $toStr_true\n");
+          printf("MOVE LF@%%str string@true\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_nil\n");
+          printf("MOVE LF@%%str string@()\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_string\n");
+          printf("MOVE LF@%%str LF@%%value\n");
+          printf("JUMP $toStr_end\n");
+
+          printf("LABEL $toStr_end\n");
+          printf("PUSHS LF@%%str\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function toInt(value: Double): Int
+ *
+ * @param value value to convert to int
+ * @param int variable to store the int representation of the value
+ * @return void
+ */
+void generate_toInt() {
+          printf("LABEL $toInt\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%int\n");
+          printf("POPS LF@%%value\n");
+
+          printf("FLOAT2INT LF@%%int LF@%%value\n");
+
+          printf("PUSHS LF@%%int\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
+}
+
+/**
+ * @brief generates built-in function strLength(value: String): Int
+ *
+ * @param value string to get the length of
+ * @param length variable to store the length of the string
+ * @return void
+ */
+void generate_strLength() {
+          printf("LABEL $strLength\n");
+          printf("CREATEFRAME\n");
+          printf("PUSHFRAME\n");
+          printf("DEFVAR LF@%%value\n");
+          printf("DEFVAR LF@%%length\n");
+          printf("POPS LF@%%value\n");
+
+          printf("STRLEN LF@%%length LF@%%value\n");
+
+          printf("PUSHS LF@%%length\n");
           printf("POPFRAME\n");
           printf("RETURN\n");
 }
@@ -350,6 +710,7 @@ void generate_subStr() {
           printf("DEFVAR LF@%%end\n");
           printf("DEFVAR LF@%%char\n");
           printf("DEFVAR LF@%%substring\n");
+          printf("MOVE LF@%%substring string@\n");
 
           printf("POPS LF@%%end\n");
           printf("POPS LF@%%start\n");
@@ -361,19 +722,26 @@ void generate_subStr() {
           printf("STRLEN LF@%%length LF@%%value\n");
 
           printf("LT LF@%%p LF@%%start int@0\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("LT LF@%%p LF@%%end int@0\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%start LF@%%end\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%start LF@%%length\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("EQ LF@%%p LF@%%start LF@%%length\n");
+          printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%end LF@%%length\n");
           printf("JUMPIFEQ $subStr_error LF@%%p bool@true\n");
 
           printf("LABEL $subStr_loop\n");
+          printf("JUMPIFEQ $subStr_end LF@%%start LF@%%end\n");
           printf("GETCHAR LF@%%char LF@%%value LF@%%start\n");
           printf("CONCAT LF@%%substring LF@%%substring LF@%%char\n");
           printf("ADD LF@%%start LF@%%start int@1\n");
-          printf("JUMPIFNEQ $subStr_loop LF@%%start LF@%%end\n");
+          printf("JUMP $subStr_loop\n");
 
+          printf("LABEL $subStr_end\n");
           printf("PUSHS LF@%%substring\n");
 
           printf("POPFRAME\n");
@@ -409,8 +777,11 @@ void generate_ord() {
           printf("STRLEN LF@%%length LF@%%value\n");
 
           printf("EQ LF@%%p LF@%%length int@0\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("LT LF@%%p LF@%%index int@0\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("EQ LF@%%p LF@%%index LF@%%length\n");
+          printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
           printf("GT LF@%%p LF@%%index LF@%%length\n");
           printf("JUMPIFEQ $ord_error LF@%%p bool@true\n");
 
@@ -422,7 +793,9 @@ void generate_ord() {
           printf("RETURN\n");
 
           printf("LABEL $ord_error\n");
-          printf("EXIT int@-1\n");
+          printf("PUSHS int@-1\n");
+          printf("POPFRAME\n");
+          printf("RETURN\n");
 }
 
 /**
@@ -454,9 +827,14 @@ void generate_chr() {
  * @return void
  */
 void generate_buildins() {
-    generate_readInt();
-    generate_print();
-    generate_subStr();
-    generate_ord();
-    generate_chr();
+          generate_readInt();
+          generate_readDouble();
+          generate_readLine();
+          generate_print();
+          generate_toStr();
+          generate_toInt();
+          generate_strLength();
+          generate_subStr();
+          generate_ord();
+          generate_chr();
 }
