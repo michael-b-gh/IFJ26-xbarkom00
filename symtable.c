@@ -286,3 +286,17 @@ void symTableRestoreContext(SymTable *symtable, SymTableContext *context) {
   free(context->scopes);
   free(context);
 }
+
+size_t symTableGetNextVarId(const SymTable *symtable) {
+  if (symtable == NULL)
+    return 0;
+  else
+    return symtable->nextVarId;
+}
+
+void symTableSetNextVarId(SymTable *symtable, size_t nextId) {
+  if (symtable == NULL)
+    return;
+
+  symtable->nextVarId = nextId;
+}
