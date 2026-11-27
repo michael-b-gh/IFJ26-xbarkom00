@@ -14,9 +14,10 @@
 
 #include "error.h"
 #include "scanner.h"
-
-// TODO: implement DOUBLE from INT and STRING
-
+/**
+ * @brief Struct for FSM states
+ *
+ */
 typedef enum {
   STATE_START,
   STATE_STRING,
@@ -64,6 +65,14 @@ int NextSymbol() {
   return symbol;
 }
 
+/**
+ * @brief Indenatation control and FSM
+ *
+ * @param current_token - token struct with token type and it's attribute
+ * @return Returns either token with token type and attribute as well as SUCCESS
+ * on success or return LEX_ERR if lexical error occures
+ */
+
 int get_next_token(token* current_token) {
   char* word = malloc(10 * sizeof(char));
   char last_symbol_word = ' ';
@@ -81,7 +90,7 @@ int get_next_token(token* current_token) {
   states state = STATE_START;
 
   while (1) {
-    if (lenght >= lenght_array) {
+    if (lenght >= lenght_array - 2) {
       char* check = realloc(word, (lenght_array * 2) * sizeof(char));
       if (check == NULL) {
         printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -92,13 +101,20 @@ int get_next_token(token* current_token) {
       lenght_array = lenght_array * 2;
     }
 
+    // INDETATION CONTROL
+    int yes_tab = 0;
     while (new_line == 1) {
-      while (symbol == ' ') {
-        counter++;
+      while (symbol == ' ' || symbol == '\t' || symbol == '\r') {
+        if (symbol == '\t') {
+          yes_tab = 1;
+        } else if (symbol == ' ') {
+          counter++;
+        }
         symbol = NextSymbol();
       }
 
       if (symbol == '\n') {
+        yes_tab = 0;
         counter = 0;
         symbol = NextSymbol();
         continue;
@@ -114,12 +130,24 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
           counter = 0;
+          yes_tab = 0;
           continue;
+        }
+
+        if (symbol == '*') {
+          state = STATE_MUL_COMMENT;
+          goto skip_ind;
         } else {
           if (symbol != EOF) {
             ungetc(symbol, stdin);
           }
+          symbol = '/';
         }
+      }
+
+      if (symbol != EOF && yes_tab == 1) {
+        free(word);
+        return LEX_ERR;
       }
 
       if (parent_count >
@@ -151,6 +179,7 @@ int get_next_token(token* current_token) {
           new_line = 0;
           counter = 0;
           ungetc(symbol, stdin);
+          free(word);
           current_token->token_type = TOKEN_IND;
           current_token->attribute = NULL;
           return SUCCESS;
@@ -170,15 +199,19 @@ int get_next_token(token* current_token) {
         if (symbol != EOF) {
           ungetc(symbol, stdin);
         }
+        last_before_parent = new_max_ind;
+        free(word);
         current_token->token_type = TOKEN_DED;
         current_token->attribute = NULL;
         return SUCCESS;
       } else {
+        last_before_parent = last_ind;
         new_line = 0;
         counter = 0;
       }
     }
 
+    // FSM implemented as switch
   skip_ind:
     switch (state) {
       case STATE_START:
@@ -205,10 +238,11 @@ int get_next_token(token* current_token) {
           symbol = NextSymbol();
         } else if (symbol == ';') {
           new_line = 0;
+          free(word);
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           lenght = 0;
-          return 0;
+          return SUCCESS;
         } else if (symbol == '\"') {
           state = STATE_STRING_START;
           word[lenght] = symbol;
@@ -289,8 +323,8 @@ int get_next_token(token* current_token) {
             lenght++;
             symbol = NextSymbol();
           }
+          word[lenght] = '\0';
           if (strcmp(word, "@main") == 0) {
-            word[lenght] = '\0';
             ungetc(symbol, stdin);
             current_token->token_type = TOKEN_MAIN;
             current_token->attribute = word;
@@ -308,6 +342,7 @@ int get_next_token(token* current_token) {
             continue;
           } else {
             new_line = 1;
+            free(word);
             current_token->token_type = TOKEN_EOL;
             current_token->attribute = NULL;
             return SUCCESS;
@@ -316,15 +351,18 @@ int get_next_token(token* current_token) {
           if (new_line == 0 && dent_index > 0) {
             new_line = 1;
             counter = 0;
+            free(word);
             current_token->token_type = TOKEN_EOL;
             current_token->attribute = NULL;
             return SUCCESS;
           } else if (dent_index > 0) {
             dent_index--;
+            free(word);
             current_token->token_type = TOKEN_DED;
             current_token->attribute = NULL;
             return SUCCESS;
           } else {
+            free(word);
             current_token->token_type = TOKEN_EOF;
             current_token->attribute = NULL;
             return SUCCESS;
@@ -363,6 +401,9 @@ int get_next_token(token* current_token) {
         if (isdigit(symbol)) {
           state = STATE_DOUBLE;
           word[lenght] = symbol;
+          lenght++;
+          symbol = NextSymbol();
+          state = STATE_EXP_NUM_NO_E;
           break;
         }
         ungetc(symbol, stdin);
@@ -498,7 +539,7 @@ int get_next_token(token* current_token) {
         return SUCCESS;
       case STATE_ID:
         while (isalpha(symbol) || isdigit(symbol) || symbol == '_') {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -610,7 +651,7 @@ int get_next_token(token* current_token) {
         }
       case STATE_INT:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -664,7 +705,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_ZERO:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -705,9 +746,9 @@ int get_next_token(token* current_token) {
         while (symbol != '\n' && symbol != EOF) {
           symbol = NextSymbol();
         }
-        state = STATE_START;
         lenght = 0;
         new_line = 1;
+        free(word);
         current_token->token_type = TOKEN_EOL;
         current_token->attribute = NULL;
         return SUCCESS;
@@ -734,7 +775,6 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
         }
-        state = STATE_START;
         if (comm_mul_line == 0) {
           lenght = 0;
           continue;
@@ -751,6 +791,7 @@ int get_next_token(token* current_token) {
             symbol = NextSymbol();
           }
           new_line = 1;
+          free(word);
           current_token->token_type = TOKEN_EOL;
           current_token->attribute = NULL;
           return SUCCESS;
@@ -780,7 +821,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_EXP:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -817,7 +858,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_EXP_SIGN:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -847,7 +888,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_EXP_NUM:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf(
@@ -912,7 +953,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_EXP_NUM_NO_E:
         while (1) {
-          if (lenght >= lenght_array - 1) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf(
@@ -983,6 +1024,12 @@ int get_next_token(token* current_token) {
           word[lenght] = symbol;
           lenght++;
           symbol = NextSymbol();
+        } else if (symbol == '\\') {
+          state = STATE_STRING;
+        } else if (symbol == '\n' || symbol == '\r' || symbol == EOF) {
+          free(word);
+          lenght = 0;
+          return LEX_ERR;
         } else {
           state = STATE_STRING;
           word[lenght] = symbol;
@@ -992,7 +1039,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_STRING:
         while (1) {
-          if (lenght >= lenght_array) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -1052,7 +1099,7 @@ int get_next_token(token* current_token) {
           }
         }
       case STATE_TWO_QUOTE:
-        if (lenght >= lenght_array) {
+        if (lenght >= lenght_array - 2) {
           char* check = realloc(word, (lenght_array * 2) * sizeof(char));
           if (check == NULL) {
             printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -1078,7 +1125,7 @@ int get_next_token(token* current_token) {
         }
       case STATE_MUL_STR:
         while (1) {
-          if (lenght >= lenght_array) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
@@ -1107,7 +1154,7 @@ int get_next_token(token* current_token) {
         break;
       case STATE_STR_CONTROL:
         while (1) {
-          if (lenght >= lenght_array) {
+          if (lenght >= lenght_array - 2) {
             char* check = realloc(word, (lenght_array * 2) * sizeof(char));
             if (check == NULL) {
               printf("Pole nebolo mozne zvacsit, nie je mozne pokracovat.");
